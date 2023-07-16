@@ -1,0 +1,16 @@
+name: Linter
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  golangci:
+    name: Linting Go code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
