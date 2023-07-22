@@ -2,48 +2,92 @@
 
 ## Description
 
-This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI application to calculate subnets when given an IP address and a subnet mask in CIDR notation. It will return the requested IP, subnet mask, host address range, network address, broadcast address, subnet bits, mask bits, mask size, maximum number of subnets, max hosts per subnet. It works as expected with IPv4, however IPv6 handling is questionable at best.
+This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to calculate subnets when given an IP address and a subnet mask in CIDR notation. It will return the host address range, network address, broadcast address, subnet mask, maximum number of subnets, and maximum number of hosts. It works as expected with IPv4, however IPv6 handling is questionable at best.
 
 ## Usage
 
-```shell
-subnetCalc <ip address>/<subnet mask>
-```
+`subnetCalc <ip address>/<subnet mask>`
 
 ## Examples
 
-### Human Readable
+### Get Network Information for a /19 Network
+
+`subnetCalc 10.12.34.56/19`
 
 ```text
-subnetCalc 10.12.34.56/19
-
-            IP Address: 10.12.34.56
-           Subnet Mask: 255.255.224.0
-
+               Network: 10.12.32.0/19
     Host Address Range: 10.12.32.1 - 10.12.63.254
-       Network Address: 10.12.32.0
      Broadcast Address: 10.12.63.255
-       Maximum Subnets: 2048
-      Hosts Per Subnet: 8190
+           Subnet Mask: 255.255.224.0
+       Maximum Subnets: 2,048
+         Maximum Hosts: 8,190
 ```
 
-### JSON Output
+### List /27 Subnets Contained in a /25 Network
+
+`subnetCalc 192.168.10.0/25 --subnet_size 27`
 
 ```text
-subnetCalc --json 10.12.34.56/19
+               Network: 192.168.10.0/25
+    Host Address Range: 192.168.10.1 - 192.168.10.126
+     Broadcast Address: 192.168.10.127
+           Subnet Mask: 255.255.255.128
+       Maximum Subnets: 2
+         Maximum Hosts: 126
+
+  192.168.10.0/25 contains 4 /27 subnets:
+╭───┬──────────────────┬───────────────┬────────────────┬────────────────┬───────╮
+│ # │ SUBNET           │ FIRST IP      │ LAST IP        │ BROADCAST      │ HOSTS │
+├───┼──────────────────┼───────────────┼────────────────┼────────────────┼───────┤
+│ 1 │ 192.168.10.0/27  │ 192.168.10.1  │ 192.168.10.30  │ 192.168.10.31  │ 30    │
+│ 2 │ 192.168.10.32/27 │ 192.168.10.33 │ 192.168.10.62  │ 192.168.10.63  │ 30    │
+│ 3 │ 192.168.10.64/27 │ 192.168.10.65 │ 192.168.10.94  │ 192.168.10.95  │ 30    │
+│ 4 │ 192.168.10.96/27 │ 192.168.10.97 │ 192.168.10.126 │ 192.168.10.127 │ 30    │
+╰───┴──────────────────┴───────────────┴────────────────┴────────────────┴───────╯
+```
+
+### List /20 Subnets Contained in a /19 Network in JSON Format
+
+`subnetCalc 10.12.34.56/19 --subnet_size 20 --json`
+
+```json
 {
-  "broadcast_addr": "10.12.63.255",
   "cidr": "10.12.32.0/19",
-  "first_ip": "10.12.32.1",
-  "hosts_per_subnet": 8190,
-  "ip_addr": "10.12.34.56",
-  "last_ip": "10.12.63.254",
-  "mask_bits": 19,
-  "mask_size": 32,
-  "max_subnets": 2048,
-  "network_addr": "10.12.32.0",
-  "subnet_bits": 11,
-  "subnet_mask": "255.255.224.0"
+  "firstIP": "10.12.32.1",
+  "lastIP": "10.12.63.254",
+  "networkAddr": "10.12.32.0",
+  "broadcastAddr": "10.12.63.255",
+  "subnetMask": "255.255.224.0",
+  "maskBits": 19,
+  "subnetBits": 11,
+  "maxSubnets": 2048,
+  "maxHosts": 8190,
+  "subnets": [
+    {
+      "cidr": "10.12.32.0/20",
+      "firstIP": "10.12.32.1",
+      "lastIP": "10.12.47.254",
+      "networkAddr": "10.12.32.0",
+      "broadcastAddr": "10.12.47.255",
+      "subnetMask": "255.255.240.0",
+      "maskBits": 20,
+      "subnetBits": 12,
+      "maxSubnets": 4096,
+      "maxHosts": 4094
+    },
+    {
+      "cidr": "10.12.48.0/20",
+      "firstIP": "10.12.48.1",
+      "lastIP": "10.12.63.254",
+      "networkAddr": "10.12.48.0",
+      "broadcastAddr": "10.12.63.255",
+      "subnetMask": "255.255.240.0",
+      "maskBits": 20,
+      "subnetBits": 12,
+      "maxSubnets": 4096,
+      "maxHosts": 4094
+    }
+  ]
 }
 ```
 
