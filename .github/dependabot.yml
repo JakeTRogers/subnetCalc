@@ -6,3 +6,5 @@ updates:
       interval: "weekly"
     labels:
       - "golang"
+    commit-message:
+      prefix: "fix(deps)"
