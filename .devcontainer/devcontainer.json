@@ -13,9 +13,16 @@
                 "go.goroot": "/usr/local/go"
             },
             "extensions": [
+                "aaron-bond.better-comments",
+                "bierner.markdown-checkbox",
+                "bierner.markdown-emoji",
+                "bierner.markdown-footnotes",
+                "bierner.markdown-mermaid",
+                "bierner.markdown-preview-github-styles",
                 "DavidAnson.vscode-markdownlint",
+                "eamodio.gitlens",
                 "EditorConfig.EditorConfig",
-                "golang.Go",
+                "golang.go",
                 "streetsidesoftware.code-spell-checker",
                 "yzhang.markdown-all-in-one"
             ]
