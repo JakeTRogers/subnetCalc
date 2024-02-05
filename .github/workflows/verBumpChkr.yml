@@ -1,0 +1,26 @@
+name: Version Bump Check
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  FILE_PATH: 'cmd/root.go'                                   # Path to file with version string
+  VERSION_PATTERN: 'Version: "v[0-9]\+\.[0-9]\+\.[0-9]\+",'  # Version string regex pattern
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+      with:
+        fetch-depth: 2
+    - name: Check if Version String is Updated
+      run: |
+        if git diff -U0 --diff-filter 'AM' -r HEAD^1 HEAD -- "$FILE_PATH" | grep -q "$VERSION_PATTERN"; then
+          echo "##### ✅ Version updated in $FILE_PATH" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "##### ❌ Version NOT updated in $FILE_PATH" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
