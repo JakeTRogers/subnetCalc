@@ -4,7 +4,5 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    labels:
-      - "golang"
     commit-message:
       prefix: "fix(deps)"
