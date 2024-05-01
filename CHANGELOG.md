@@ -1,3 +1,9 @@
+## v0.1.5 (2024-04-30)
+
+### Fix
+
+- **deps**: bump github.com/jedib0t/go-pretty/v6 from 6.5.4 to 6.5.8
+
 ## v0.1.4 (2024-02-05)
 
 ### Fix
