@@ -12,7 +12,7 @@ repos:
       - id: trailing-whitespace
         args: [ --markdown-linebreak-ext=md ]
   - repo: https://github.com/golangci/golangci-lint
-    rev: dc2815312726b4f374f5c69a1c183a85990917a7  # frozen: v1.58.1
+    rev: 2059b18a39d559552839476ba78ce6acaa499b43  # frozen: v1.59.0
     hooks:
       - id: golangci-lint-full
   - repo: https://github.com/commitizen-tools/commitizen
