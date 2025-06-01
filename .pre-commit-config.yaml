@@ -16,7 +16,7 @@ repos:
     hooks:
       - id: golangci-lint-full
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: e9aa5d979ea6fd14dcf59c6bd3836bef17d386c1  # frozen: v3.27.0
+    rev: a8094aebad266040ef07f118a96c88a93f4aecf8  # frozen: v4.8.2
     hooks:
       - id: commitizen
         stages:
