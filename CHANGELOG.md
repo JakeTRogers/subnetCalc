@@ -1,3 +1,13 @@
+## v0.1.8 (2025-05-31)
+
+### Fix
+
+- **devcontainer**: bump Go image version from 1.21 to 1.23
+- **deps**: bump github.com/rs/zerolog from 1.33.0 to 1.34.0
+- **deps**: bump golang.org/x/text from 0.15.0 to 0.25.0
+- **deps**: bump github.com/spf13/cobra from 1.8.0 to 1.9.1
+- **deps**: bump github.com/jedib0t/go-pretty/v6 from 6.5.9 to 6.6.7
+
 ## v0.1.7 (2024-05-27)
 
 ### Fix
