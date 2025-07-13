@@ -113,8 +113,12 @@ func (n network) printNetwork() {
 	fmt.Println("    Host Address Range:", n.FirstHostIP, "-", n.LastHostIP)
 	fmt.Println("     Broadcast Address:", n.BroadcastAddr)
 	fmt.Println("           Subnet Mask:", n.SubnetMask)
-	p.Println("       Maximum Subnets:", n.MaxSubnets)
-	p.Println("         Maximum Hosts:", n.MaxHosts)
+	if _, err := p.Println("       Maximum Subnets:", n.MaxSubnets); err != nil {
+		utils.Log.Fatal().Msg(err.Error())
+	}
+	if _, err := p.Println("         Maximum Hosts:", n.MaxHosts); err != nil {
+		utils.Log.Fatal().Msg(err.Error())
+	}
 }
 
 // printJSON will print a network struct in json format.
