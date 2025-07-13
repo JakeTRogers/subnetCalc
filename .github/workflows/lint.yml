@@ -4,6 +4,9 @@ on:
     branches-ignore:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   golangci:
     name: Linting Go code

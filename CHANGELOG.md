@@ -1,3 +1,10 @@
+## v0.1.9 (2025-07-13)
+
+### Fix
+
+- handle errors when printing maximum subnets and hosts
+- **deps**: bump golang.org/x/text from 0.25.0 to 0.26.0
+
 ## v0.1.8 (2025-05-31)
 
 ### Fix

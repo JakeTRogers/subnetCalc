@@ -113,8 +113,12 @@ func (n network) printNetwork() {
 	fmt.Println("    Host Address Range:", n.FirstHostIP, "-", n.LastHostIP)
 	fmt.Println("     Broadcast Address:", n.BroadcastAddr)
 	fmt.Println("           Subnet Mask:", n.SubnetMask)
-	p.Println("       Maximum Subnets:", n.MaxSubnets)
-	p.Println("         Maximum Hosts:", n.MaxHosts)
+	if _, err := p.Println("       Maximum Subnets:", n.MaxSubnets); err != nil {
+		utils.Log.Fatal().Msg(err.Error())
+	}
+	if _, err := p.Println("         Maximum Hosts:", n.MaxHosts); err != nil {
+		utils.Log.Fatal().Msg(err.Error())
+	}
 }
 
 // printJSON will print a network struct in json format.
@@ -178,7 +182,7 @@ var subnetMaskBits int
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "subnetCalc <CIDR>",
-	Version: "v0.1.8",
+	Version: "v0.1.9",
 	Short:   "calculate subnet",
 	Long: `subnetCalc is a CLI application to calculate subnets when given an IP address and a subnet mask in CIDR notation. It
 will return the requested network, host address range, broadcast address, subnet mask, maximum number of subnets, and
