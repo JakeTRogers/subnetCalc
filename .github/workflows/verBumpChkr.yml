@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+permissions:
+  contents: read
+
 env:
   FILE_PATH: 'cmd/root.go'                                   # Path to file with version string
   VERSION_PATTERN: 'Version: "v[0-9]\+\.[0-9]\+\.[0-9]\+",'  # Version string regex pattern
