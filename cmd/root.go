@@ -182,7 +182,7 @@ var subnetMaskBits int
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "subnetCalc <CIDR>",
-	Version: "v0.1.9",
+	Version: "v0.1.10",
 	Short:   "calculate subnet",
 	Long: `subnetCalc is a CLI application to calculate subnets when given an IP address and a subnet mask in CIDR notation. It
 will return the requested network, host address range, broadcast address, subnet mask, maximum number of subnets, and
