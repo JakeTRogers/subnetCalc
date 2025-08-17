@@ -1,3 +1,10 @@
+## v0.1.10 (2025-08-17)
+
+### Fix
+
+- **deps**: bump golang.org/x/text from 0.26.0 to 0.28.0
+- **deps**: bump github.com/jedib0t/go-pretty/v6 from 6.6.7 to 6.6.8
+
 ## v0.1.9 (2025-07-13)
 
 ### Fix
