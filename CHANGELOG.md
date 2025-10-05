@@ -1,3 +1,11 @@
+## v0.1.11 (2025-10-05)
+
+### Fix
+
+- bump Go version from 1.23 to 1.25
+- **deps**: bump golang.org/x/text from 0.28.0 to 0.29.0
+- **deps**: bump github.com/spf13/cobra from 1.9.1 to 1.10.1
+
 ## v0.1.10 (2025-08-17)
 
 ### Fix
