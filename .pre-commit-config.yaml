@@ -15,6 +15,16 @@ repos:
     rev: 43d03392d7dc3746fa776dbddd66dfcccff70651  # frozen: v2.4.0
     hooks:
       - id: golangci-lint-full
+  - repo: local
+    hooks:
+      - id: go-test
+        name: go test
+        entry: go test ./... -v
+        language: system
+        pass_filenames: false
+        files: \.go$
+        stages:
+          - pre-commit
   - repo: https://github.com/commitizen-tools/commitizen
     rev: c710c9f541ae452547fdce5c360929f007ec4867  # frozen: v4.8.3
     hooks:
