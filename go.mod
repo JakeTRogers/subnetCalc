@@ -3,7 +3,7 @@ module github.com/JakeTRogers/subnetCalc
 go 1.25
 
 require (
-	github.com/jedib0t/go-pretty/v6 v6.6.8
+	github.com/jedib0t/go-pretty/v6 v6.7.7
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/text v0.32.0
