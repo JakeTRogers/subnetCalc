@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   golangci:
+    if: github.actor != 'dependabot[bot]'
     name: Linting Go code
     runs-on: ubuntu-latest
     steps:

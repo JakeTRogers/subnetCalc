@@ -13,6 +13,7 @@ env:
 
 jobs:
   version-check:
+    if: ${{ !startsWith(github.event.pull_request.title, 'ci(actions):') }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
