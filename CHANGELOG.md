@@ -1,3 +1,15 @@
+## v1.0.0 (2025-12-26)
+
+### Feature
+
+- add bubbletea-based TUI for subnet management
+
+### Fix
+
+- **deps**: bump github.com/jedib0t/go-pretty/v6 from 6.6.8 to 6.7.7
+- **deps**: bump golang.org/x/text from 0.29.0 to 0.32.0
+- **deps**: bump github.com/spf13/cobra from 1.10.1 to 1.10.2
+
 ## v0.1.11 (2025-10-05)
 
 ### Fix

@@ -16,7 +16,7 @@ import (
 
 var subnetMaskBits int
 var interactive bool
-var version = "v0.1.11"
+var version = "v1.0.0"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
