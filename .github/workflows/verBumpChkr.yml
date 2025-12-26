@@ -9,7 +9,7 @@ permissions:
 
 env:
   FILE_PATH: 'cmd/root.go'                                   # Path to file with version string
-  VERSION_PATTERN: 'Version: "v[0-9]\+\.[0-9]\+\.[0-9]\+",'  # Version string regex pattern
+  VERSION_PATTERN: 'version = "v[0-9]\+\.[0-9]\+\.[0-9]\+"'  # Version string regex pattern
 
 jobs:
   version-check:

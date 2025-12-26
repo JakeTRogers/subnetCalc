@@ -2,13 +2,28 @@
 
 ## Description
 
-This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to calculate subnets when given an IP address and a subnet mask in CIDR notation. It will return the host address range, network address, broadcast address, subnet mask, maximum number of subnets, and maximum number of hosts. It works as expected with IPv4, however IPv6 handling is questionable at best.
+This is a Go CLI utility (built with [Cobra](https://github.com/spf13/cobra)) to calculate network information from a CIDR.
+
+It can also split a “supernet” into smaller subnets and render the result either as a styled table or JSON. There is also an optional interactive TUI for splitting/joining subnets.
+
+IPv4 is the primary target. IPv6 works for basic calculations/output, but deeper functionality (especially around very large splits) is intentionally limited.
 
 ## Usage
 
 `subnetCalc <ip address>/<subnet mask>`
 
+### Flags
+
+- `--subnet_size`, `-s` — split the input network into subnets of this prefix length
+- `--json`, `-j` — output JSON
+- `--interactive`, `-i` — launch the interactive TUI (mutually exclusive with `--json`)
+- `--verbose`, `-v` — increase verbosity (repeat for more)
+
 ## Examples
+
+### List /12 Subnets Contained in a /8 Network Using the Interactive TUI
+
+![svg](/assets/demo_interactive-mode.svg)
 
 ### Get Network Information for a /19 Network
 
@@ -19,7 +34,6 @@ This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to ca
     Host Address Range: 10.12.32.1 - 10.12.63.254
      Broadcast Address: 10.12.63.255
            Subnet Mask: 255.255.224.0
-       Maximum Subnets: 2,048
          Maximum Hosts: 8,190
 ```
 
@@ -32,18 +46,16 @@ This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to ca
     Host Address Range: 192.168.10.1 - 192.168.10.126
      Broadcast Address: 192.168.10.127
            Subnet Mask: 255.255.255.128
-       Maximum Subnets: 2
          Maximum Hosts: 126
 
   192.168.10.0/25 contains 4 /27 subnets:
-╭───┬──────────────────┬───────────────┬────────────────┬────────────────┬───────╮
-│ # │ SUBNET           │ FIRST IP      │ LAST IP        │ BROADCAST      │ HOSTS │
-├───┼──────────────────┼───────────────┼────────────────┼────────────────┼───────┤
-│ 1 │ 192.168.10.0/27  │ 192.168.10.1  │ 192.168.10.30  │ 192.168.10.31  │ 30    │
-│ 2 │ 192.168.10.32/27 │ 192.168.10.33 │ 192.168.10.62  │ 192.168.10.63  │ 30    │
-│ 3 │ 192.168.10.64/27 │ 192.168.10.65 │ 192.168.10.94  │ 192.168.10.95  │ 30    │
-│ 4 │ 192.168.10.96/27 │ 192.168.10.97 │ 192.168.10.126 │ 192.168.10.127 │ 30    │
-╰───┴──────────────────┴───────────────┴────────────────┴────────────────┴───────╯
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ #   Subnet              Subnet Mask     Assignable Range              Broadcast       Hosts      │
+│1   192.168.10.0/27     255.255.255.224 192.168.10.1 - 192.168.10.30  192.168.10.31   30          │
+│2   192.168.10.32/27    255.255.255.224 192.168.10.33 - 192.168.10.62 192.168.10.63   30          │
+│3   192.168.10.64/27    255.255.255.224 192.168.10.65 - 192.168.10.94 192.168.10.95   30          │
+│4   192.168.10.96/27    255.255.255.224 192.168.10.97 - 192.168.10.126192.168.10.127  30          │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### List /20 Subnets Contained in a /19 Network in JSON Format
@@ -59,9 +71,7 @@ This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to ca
   "broadcastAddr": "10.12.63.255",
   "subnetMask": "255.255.224.0",
   "maskBits": 19,
-  "subnetBits": 11,
-  "maxSubnets": 2048,
-  "maxHosts": 8190,
+  "maxHosts": "8,190",
   "subnets": [
     {
       "cidr": "10.12.32.0/20",
@@ -71,9 +81,7 @@ This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to ca
       "broadcastAddr": "10.12.47.255",
       "subnetMask": "255.255.240.0",
       "maskBits": 20,
-      "subnetBits": 12,
-      "maxSubnets": 4096,
-      "maxHosts": 4094
+      "maxHosts": "4,094"
     },
     {
       "cidr": "10.12.48.0/20",
@@ -83,17 +91,16 @@ This is a golang-based [Cobra](https://github.com/spf13/cobra) CLI utility to ca
       "broadcastAddr": "10.12.63.255",
       "subnetMask": "255.255.240.0",
       "maskBits": 20,
-      "subnetBits": 12,
-      "maxSubnets": 4096,
-      "maxHosts": 4094
+      "maxHosts": "4,094"
     }
   ]
 }
 ```
 
-## Getting Started
+## Notes / Limitations
 
-To get started using `subnetCalc`, put the binary into your preferred OS's `$PATH` and run it from the command line.
+- `--subnet_size` will refuse to generate an extremely large number of subnets (currently capped at 1,000,000) to avoid accidental OOM/hangs.
+- IPv6 output is supported, but some concepts (like “broadcast”) are displayed as the last address in the range.
 
 ## Feedback
 

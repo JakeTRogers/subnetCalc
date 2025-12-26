@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 Jake Rogers <code@supportoss.org>
-*/
 package main
 
 import (
@@ -10,22 +7,58 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 )
 
+var (
+	testBinaryPath string
+	buildOnce      sync.Once
+	buildErr       error
+)
+
+func buildTestBinary() (string, error) {
+	buildOnce.Do(func() {
+		bin, err := os.CreateTemp("", "subnetCalc_test_*")
+		if err != nil {
+			buildErr = err
+			return
+		}
+		_ = bin.Close()
+		// Ensure the file is executable on platforms that care about mode bits.
+		_ = os.Chmod(bin.Name(), 0o755)
+
+		buildCmd := exec.Command("go", "build", "-o", bin.Name(), ".")
+		buildCmd.Dir = "."
+		if err := buildCmd.Run(); err != nil {
+			buildErr = err
+			_ = os.Remove(bin.Name())
+			return
+		}
+		testBinaryPath = bin.Name()
+	})
+
+	return testBinaryPath, buildErr
+}
+
+func TestMain(m *testing.M) {
+	bin, err := buildTestBinary()
+	if err != nil {
+		// Best-effort: surface error without depending on testing.T.
+		_, _ = os.Stderr.WriteString("Failed to build test binary: " + err.Error() + "\n")
+		os.Exit(1)
+	}
+	code := m.Run()
+	_ = os.Remove(bin)
+	os.Exit(code)
+}
+
 // TestMainIntegration tests the main CLI application end-to-end
 func TestMainIntegration(t *testing.T) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-
-	// Clean up the test binary after tests
-	defer func() {
-		_ = os.Remove("./subnetCalc_test")
-	}()
 
 	tests := []struct {
 		name           string
@@ -75,7 +108,7 @@ func TestMainIntegration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 
-			cmd := exec.Command("./subnetCalc_test", tt.args...)
+			cmd := exec.Command(binary, tt.args...)
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 
@@ -120,13 +153,10 @@ func TestMainIntegration(t *testing.T) {
 
 // TestJSONOutputStructure validates the JSON output structure
 func TestJSONOutputStructure(t *testing.T) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-	defer func() { _ = os.Remove("./subnetCalc_test") }()
 
 	tests := []struct {
 		name string
@@ -146,7 +176,7 @@ func TestJSONOutputStructure(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout bytes.Buffer
 
-			cmd := exec.Command("./subnetCalc_test", tt.args...)
+			cmd := exec.Command(binary, tt.args...)
 			cmd.Stdout = &stdout
 
 			err := cmd.Run()
@@ -157,14 +187,14 @@ func TestJSONOutputStructure(t *testing.T) {
 			output := stdout.String()
 
 			// Parse JSON to validate structure
-			var result map[string]interface{}
+			var result map[string]any
 			if err := json.Unmarshal([]byte(output), &result); err != nil {
 				t.Errorf("Invalid JSON output: %v\nOutput: %s", err, output)
 				return
 			}
 
-			// Check required fields
-			requiredFields := []string{"cidr", "firstIP", "lastIP", "networkAddr", "broadcastAddr", "subnetMask", "maskBits", "maxSubnets", "maxHosts"}
+			// Check required fields (maxSubnets removed in schema v0.2.0)
+			requiredFields := []string{"cidr", "firstIP", "lastIP", "networkAddr", "broadcastAddr", "subnetMask", "maskBits", "maxHosts"}
 			for _, field := range requiredFields {
 				if _, exists := result[field]; !exists {
 					t.Errorf("JSON output missing required field: %s", field)
@@ -175,7 +205,7 @@ func TestJSONOutputStructure(t *testing.T) {
 			if strings.Contains(strings.Join(tt.args, " "), "subnet_size") {
 				if subnets, exists := result["subnets"]; !exists {
 					t.Error("JSON output should contain subnets array when subnet_size is specified")
-				} else if subnetSlice, ok := subnets.([]interface{}); !ok || len(subnetSlice) == 0 {
+				} else if subnetSlice, ok := subnets.([]any); !ok || len(subnetSlice) == 0 {
 					t.Error("Subnets should be a non-empty array")
 				}
 			}
@@ -185,13 +215,10 @@ func TestJSONOutputStructure(t *testing.T) {
 
 // TestErrorHandling tests various error conditions
 func TestErrorHandling(t *testing.T) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-	defer func() { _ = os.Remove("./subnetCalc_test") }()
 
 	tests := []struct {
 		name        string
@@ -229,7 +256,7 @@ func TestErrorHandling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stderr bytes.Buffer
 
-			cmd := exec.Command("./subnetCalc_test", tt.args...)
+			cmd := exec.Command(binary, tt.args...)
 			cmd.Stderr = &stderr
 
 			err := cmd.Run()
@@ -247,13 +274,10 @@ func TestErrorHandling(t *testing.T) {
 
 // TestSubnetCalculations validates specific subnet calculation scenarios
 func TestSubnetCalculations(t *testing.T) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-	defer func() { _ = os.Remove("./subnetCalc_test") }()
 
 	tests := []struct {
 		name           string
@@ -279,7 +303,7 @@ func TestSubnetCalculations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout bytes.Buffer
 
-			cmd := exec.Command("./subnetCalc_test", tt.cidr, "--subnet_size", tt.subnetSize)
+			cmd := exec.Command(binary, tt.cidr, "--subnet_size", tt.subnetSize)
 			cmd.Stdout = &stdout
 
 			err := cmd.Run()
@@ -300,13 +324,10 @@ func TestSubnetCalculations(t *testing.T) {
 
 // TestFlags tests various flag combinations
 func TestFlags(t *testing.T) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-	defer func() { _ = os.Remove("./subnetCalc_test") }()
 
 	tests := []struct {
 		name           string
@@ -315,8 +336,8 @@ func TestFlags(t *testing.T) {
 		shouldFail     bool
 	}{
 		{
-			name:           "Color flag with subnets",
-			args:           []string{"192.168.1.0/24", "--subnet_size", "26", "--color"},
+			name:           "Subnet size flag with styled output",
+			args:           []string{"192.168.1.0/24", "--subnet_size", "26"},
 			expectedOutput: []string{"contains 4", "/26 subnets"},
 			shouldFail:     false,
 		},
@@ -333,8 +354,8 @@ func TestFlags(t *testing.T) {
 			shouldFail:     false,
 		},
 		{
-			name:       "Mutually exclusive flags (color and json)",
-			args:       []string{"192.168.1.0/24", "--subnet_size", "26", "--color", "--json"},
+			name:       "Mutually exclusive flags (interactive and json)",
+			args:       []string{"192.168.1.0/24", "--interactive", "--json"},
 			shouldFail: true,
 		},
 	}
@@ -343,7 +364,7 @@ func TestFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 
-			cmd := exec.Command("./subnetCalc_test", tt.args...)
+			cmd := exec.Command(binary, tt.args...)
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 
@@ -373,31 +394,25 @@ func TestFlags(t *testing.T) {
 
 // BenchmarkCLIExecution benchmarks the CLI execution time
 func BenchmarkCLIExecution(b *testing.B) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		b.Fatalf("Failed to build binary: %v", err)
 	}
-	defer func() { _ = os.Remove("./subnetCalc_test") }()
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		cmd := exec.Command("./subnetCalc_test", "192.168.1.0/24")
+		cmd := exec.Command(binary, "192.168.1.0/24")
 		_ = cmd.Run()
 	}
 }
 
 // TestIPv6Handling tests IPv6 address handling (expected to be limited)
 func TestIPv6Handling(t *testing.T) {
-	// Build the binary first
-	buildCmd := exec.Command("go", "build", "-o", "subnetCalc_test", ".")
-	buildCmd.Dir = "."
-	if err := buildCmd.Run(); err != nil {
+	binary, err := buildTestBinary()
+	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
 	}
-	defer func() { _ = os.Remove("./subnetCalc_test") }()
 
 	tests := []struct {
 		name string
@@ -417,7 +432,7 @@ func TestIPv6Handling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 
-			cmd := exec.Command("./subnetCalc_test", tt.cidr)
+			cmd := exec.Command(binary, tt.cidr)
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
 

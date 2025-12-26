@@ -1,6 +1,3 @@
-/*
-Copyright © 2023 Jake Rogers <code@supportoss.org>
-*/
 package utils
 
 import (
@@ -11,17 +8,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	DefaultLogLevel = zerolog.ErrorLevel
-)
+// DefaultLogLevel is the default logging level.
+const DefaultLogLevel = zerolog.ErrorLevel
 
-var (
-	Log = Logger(DefaultLogLevel)
-)
+// Log is the application logger. Use SetLogLevel to configure verbosity.
+var Log zerolog.Logger
 
-// Logger returns a zerolog logger with a console writer.
-func Logger(level zerolog.Level) zerolog.Logger {
-	return zerolog.New(
+func init() {
+	initLogger(DefaultLogLevel)
+}
+
+// initLogger initializes the logger with the specified level.
+func initLogger(level zerolog.Level) {
+	Log = zerolog.New(
 		zerolog.ConsoleWriter{
 			Out:        os.Stderr,
 			TimeFormat: time.RFC822Z,
@@ -29,13 +28,23 @@ func Logger(level zerolog.Level) zerolog.Logger {
 		Level(level).
 		With().
 		Timestamp().
-		// Caller().
 		Logger()
 }
 
 // SetLogLevel sets the log level based on the number of times the verbose flag is used.
-func SetLogLevel(cmd *cobra.Command, args []string) {
-	verbosity, _ := cmd.Flags().GetCount("verbose")
-	level := Log.GetLevel()
-	Log = Logger(level - zerolog.Level(verbosity))
+func SetLogLevel(cmd *cobra.Command, _ []string) {
+	verbosity := 0
+	if v, err := cmd.Flags().GetCount("verbose"); err == nil {
+		verbosity = v
+	} else if v, err := cmd.PersistentFlags().GetCount("verbose"); err == nil {
+		verbosity = v
+	} else if v, err := cmd.InheritedFlags().GetCount("verbose"); err == nil {
+		verbosity = v
+	}
+	level := DefaultLogLevel - zerolog.Level(verbosity)
+	if level < zerolog.TraceLevel {
+		level = zerolog.TraceLevel
+	}
+	zerolog.SetGlobalLevel(level)
+	initLogger(level)
 }

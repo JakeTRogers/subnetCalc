@@ -1,5 +1,5 @@
 /*
-Copyright © 2023 Jake Rogers <code@supportoss.org>
+Copyright © 2025 Jake Rogers <code@supportoss.org>
 */
 package main
 
