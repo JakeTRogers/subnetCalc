@@ -26,7 +26,7 @@ repos:
         stages:
           - pre-commit
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: c710c9f541ae452547fdce5c360929f007ec4867  # frozen: v4.8.3
+    rev: 9f3ec868c0429155a46b4819b625d47a8522a3d5  # frozen: v4.10.0
     hooks:
       - id: commitizen
         stages:
