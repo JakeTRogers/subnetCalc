@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"math/big"
 	"net/netip"
+
+	"github.com/JakeTRogers/subnetCalc/logger"
 )
 
-const maxGeneratedSubnets = 1_000_000
+// MaxGeneratedSubnets is the safety limit for subnet splitting operations.
+// This prevents accidental memory exhaustion from very large splits.
+const MaxGeneratedSubnets = 1_000_000
 
 // Network represents an IP network with calculated properties.
 type Network struct {
@@ -24,11 +28,16 @@ type Network struct {
 
 // NewNetwork creates a Network from a CIDR string.
 func NewNetwork(cidr string) (Network, error) {
+	log := logger.GetLogger()
+	log.Debug().Str("cidr", cidr).Msg("creating network")
+
 	prefix, err := netip.ParsePrefix(cidr)
 	if err != nil {
 		return Network{}, fmt.Errorf("invalid CIDR %q: %w", cidr, err)
 	}
-	return NewNetworkFromPrefix(prefix), nil
+	n := NewNetworkFromPrefix(prefix)
+	log.Debug().Str("cidr", n.CIDR.String()).Int("mask_bits", n.MaskBits).Msg("network created successfully")
+	return n, nil
 }
 
 // NewNetworkFromPrefix creates a Network from a netip.Prefix.
@@ -60,6 +69,9 @@ func NewNetworkFromPrefix(prefix netip.Prefix) Network {
 
 // Split divides this network into subnets of the specified prefix length.
 func (n *Network) Split(targetBits int) error {
+	log := logger.GetLogger()
+	log.Debug().Str("cidr", n.CIDR.String()).Int("current_bits", n.MaskBits).Int("target_bits", targetBits).Msg("splitting network")
+
 	if targetBits <= n.MaskBits {
 		return fmt.Errorf("target prefix /%d must be larger than network prefix /%d", targetBits, n.MaskBits)
 	}
@@ -75,11 +87,13 @@ func (n *Network) Split(targetBits int) error {
 	if !numSubnets.IsInt64() {
 		return fmt.Errorf("requested split would generate too many subnets")
 	}
-	if numSubnets.Int64() > maxGeneratedSubnets {
-		return fmt.Errorf("requested split would generate %d subnets (limit %d)", numSubnets.Int64(), int64(maxGeneratedSubnets))
+	if numSubnets.Int64() > MaxGeneratedSubnets {
+		return fmt.Errorf("requested split would generate %d subnets (limit %d)", numSubnets.Int64(), int64(MaxGeneratedSubnets))
 	}
 
+	log.Trace().Int64("subnet_count", numSubnets.Int64()).Msg("generating subnets")
 	n.Subnets = GenerateSubnets(n.CIDR, targetBits)
+	log.Debug().Int("subnet_count", len(n.Subnets)).Msg("network split completed")
 	return nil
 }
 
@@ -118,6 +132,8 @@ func CalculateSubnetMask(maskBits, addrBits int) netip.Addr {
 		}
 	}
 
+	// Error is safe to ignore: maskBytes length is addrBits/8, which is always
+	// 4 (IPv4) or 16 (IPv6) bytes when derived from a valid netip.Addr.
 	addr, _ := netip.AddrFromSlice(maskBytes)
 	return addr
 }
@@ -132,6 +148,8 @@ func CalculateBroadcastAddr(networkAddr, subnetMask netip.Addr) netip.Addr {
 		broadcastBytes[i] = netBytes[i] | ^maskBytes[i]
 	}
 
+	// Error is safe to ignore: broadcastBytes has same length as netBytes,
+	// which is always 4 (IPv4) or 16 (IPv6) bytes from a valid netip.Addr.
 	addr, _ := netip.AddrFromSlice(broadcastBytes)
 	return addr
 }
@@ -168,6 +186,8 @@ func AddToAddr(addr netip.Addr, n int) netip.Addr {
 		carry = sum >> 8
 	}
 
+	// Error is safe to ignore: bytes slice comes from addr.AsSlice(),
+	// which is always 4 (IPv4) or 16 (IPv6) bytes from a valid netip.Addr.
 	result, _ := netip.AddrFromSlice(bytes)
 	return result
 }

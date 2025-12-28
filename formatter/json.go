@@ -3,6 +3,7 @@ package formatter
 import (
 	"encoding/json"
 
+	"github.com/JakeTRogers/subnetCalc/logger"
 	"github.com/JakeTRogers/subnetCalc/subnet"
 )
 
@@ -54,12 +55,16 @@ func toJSONNetwork(n subnet.Network) jsonNetwork {
 
 // FormatNetwork formats a single network's information as JSON.
 func (f *JSONFormatter) FormatNetwork(n subnet.Network) (string, error) {
+	log := logger.GetLogger()
+	log.Trace().Str("cidr", n.CIDR.String()).Msg("formatting network as JSON")
 	jn := toJSONNetwork(n)
 	return f.marshal(jn)
 }
 
 // FormatSubnets formats a network with its subnets as JSON.
 func (f *JSONFormatter) FormatSubnets(n subnet.Network) (string, error) {
+	log := logger.GetLogger()
+	log.Trace().Str("cidr", n.CIDR.String()).Int("subnet_count", len(n.Subnets)).Msg("formatting subnets as JSON")
 	jn := toJSONNetwork(n)
 	return f.marshal(jn)
 }

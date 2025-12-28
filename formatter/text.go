@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/JakeTRogers/subnetCalc/logger"
 	"github.com/JakeTRogers/subnetCalc/subnet"
 )
 
@@ -17,12 +18,16 @@ func NewTextFormatter() *TextFormatter {
 
 // FormatNetwork formats a single network's information as styled text.
 func (f *TextFormatter) FormatNetwork(n subnet.Network) (string, error) {
+	log := logger.GetLogger()
+	log.Trace().Str("cidr", n.CIDR.String()).Msg("formatting network as text")
 	info := ToNetworkInfo(n)
 	return FormatNetworkSummary(info), nil
 }
 
 // FormatSubnets formats a network with its subnets as styled text (simple list).
 func (f *TextFormatter) FormatSubnets(n subnet.Network) (string, error) {
+	log := logger.GetLogger()
+	log.Trace().Str("cidr", n.CIDR.String()).Int("subnet_count", len(n.Subnets)).Msg("formatting subnets as text")
 	if len(n.Subnets) == 0 {
 		return "", nil
 	}

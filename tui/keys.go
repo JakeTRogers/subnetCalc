@@ -2,20 +2,21 @@ package tui
 
 import "github.com/charmbracelet/bubbles/key"
 
-// keyMap defines the keybindings for the TUI.
+// keyMap defines the keyboard bindings for the TUI.
+// It implements the help.KeyMap interface for displaying key hints.
 type keyMap struct {
-	Up       key.Binding
-	Down     key.Binding
-	Left     key.Binding
-	Right    key.Binding
-	PageUp   key.Binding
-	PageDown key.Binding
-	Split    key.Binding
-	Join     key.Binding
-	Export   key.Binding
-	Copy     key.Binding
-	Quit     key.Binding
-	Help     key.Binding
+	Up       key.Binding // Move cursor up
+	Down     key.Binding // Move cursor down
+	Left     key.Binding // Scroll split columns left
+	Right    key.Binding // Scroll split columns right
+	PageUp   key.Binding // Page up through rows
+	PageDown key.Binding // Page down through rows
+	Split    key.Binding // Split selected subnet
+	Join     key.Binding // Join selected subnet with sibling
+	Export   key.Binding // Export tree as JSON
+	Copy     key.Binding // Copy JSON to clipboard
+	Quit     key.Binding // Exit the TUI
+	Help     key.Binding // Toggle help display
 }
 
 // ShortHelp returns key bindings for the short help view.

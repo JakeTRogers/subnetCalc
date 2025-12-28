@@ -14,7 +14,7 @@ IPv4 is the primary target. IPv6 works for basic calculations/output, but deeper
 
 ### Flags
 
-- `--subnet_size`, `-s` — split the input network into subnets of this prefix length
+- `--subnet-size`, `-s` — split the input network into subnets of this prefix length
 - `--json`, `-j` — output JSON
 - `--interactive`, `-i` — launch the interactive TUI (mutually exclusive with `--json`)
 - `--verbose`, `-v` — increase verbosity (repeat for more)
@@ -39,7 +39,7 @@ IPv4 is the primary target. IPv6 works for basic calculations/output, but deeper
 
 ### List /27 Subnets Contained in a /25 Network
 
-`subnetCalc 192.168.10.0/25 --subnet_size 27`
+`subnetCalc 192.168.10.0/25 --subnet-size 27`
 
 ```text
                Network: 192.168.10.0/25
@@ -60,7 +60,7 @@ IPv4 is the primary target. IPv6 works for basic calculations/output, but deeper
 
 ### List /20 Subnets Contained in a /19 Network in JSON Format
 
-`subnetCalc 10.12.34.56/19 --subnet_size 20 --json`
+`subnetCalc 10.12.34.56/19 --subnet-size 20 --json`
 
 ```json
 {
@@ -99,7 +99,7 @@ IPv4 is the primary target. IPv6 works for basic calculations/output, but deeper
 
 ## Notes / Limitations
 
-- `--subnet_size` will refuse to generate an extremely large number of subnets (currently capped at 1,000,000) to avoid accidental OOM/hangs.
+- `--subnet-size` will refuse to generate an extremely large number of subnets (currently capped at 1,000,000) to avoid accidental OOM/hangs.
 - IPv6 output is supported, but some concepts (like “broadcast”) are displayed as the last address in the range.
 
 ## Feedback

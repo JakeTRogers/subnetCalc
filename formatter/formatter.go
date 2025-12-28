@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/JakeTRogers/subnetCalc/logger"
 	"github.com/JakeTRogers/subnetCalc/subnet"
 )
 
@@ -18,6 +19,10 @@ const (
 	FormatJSON  OutputFormat = "json"
 	FormatTable OutputFormat = "table"
 	FormatText  OutputFormat = "text"
+
+	// DefaultTerminalWidth is the default width used for table formatting
+	// when no terminal width is detected.
+	DefaultTerminalWidth = 120
 )
 
 // Config holds configuration options for formatter creation.
@@ -31,7 +36,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		Format:      FormatTable,
-		Width:       120,
+		Width:       DefaultTerminalWidth,
 		PrettyPrint: true,
 	}
 }
@@ -39,6 +44,9 @@ func DefaultConfig() Config {
 // New creates a Formatter based on the provided configuration.
 // This is the preferred way to create formatters.
 func New(cfg Config) Formatter {
+	log := logger.GetLogger()
+	log.Trace().Str("format", string(cfg.Format)).Int("width", cfg.Width).Bool("pretty_print", cfg.PrettyPrint).Msg("creating formatter")
+
 	switch cfg.Format {
 	case FormatJSON:
 		return NewJSONFormatter(cfg.PrettyPrint)
@@ -82,7 +90,7 @@ type SubnetInfo struct {
 	Hosts      string
 }
 
-// ToNetworkInfo converts a subnet.Network to formatted NetworkInfo.
+// ToNetworkInfo converts a subnet.Network to formatted NetworkInfo for display.
 func ToNetworkInfo(n subnet.Network) NetworkInfo {
 	return NetworkInfo{
 		CIDR:          n.CIDR.String(),
@@ -96,7 +104,7 @@ func ToNetworkInfo(n subnet.Network) NetworkInfo {
 	}
 }
 
-// ToSubnetInfo converts a subnet.Network to formatted SubnetInfo.
+// ToSubnetInfo converts a subnet.Network to formatted SubnetInfo for table display.
 func ToSubnetInfo(n subnet.Network) SubnetInfo {
 	return SubnetInfo{
 		CIDR:       n.CIDR.String(),
@@ -153,6 +161,24 @@ func formatBigIntWithCommas(n *big.Int) string {
 		result = append(result, byte(c))
 	}
 	return string(result)
+
+}
+
+// FormatNumber formats a non-negative integer with comma thousand separators (e.g., 1234 becomes "1,234").
+func FormatNumber(n uint) string {
+	str := fmt.Sprintf("%d", n)
+	if len(str) <= 3 {
+		return str
+	}
+
+	var result strings.Builder
+	for i, c := range str {
+		if i > 0 && (len(str)-i)%3 == 0 {
+			result.WriteRune(',')
+		}
+		result.WriteRune(c)
+	}
+	return result.String()
 }
 
 // Shared styles for consistent formatting across formatters.

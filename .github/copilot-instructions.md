@@ -12,11 +12,13 @@ cmd/root.go          → Cobra command, CLI flags, output orchestration
 logger/logger.go     → Zerolog wrapper with verbosity levels (-v to -vvvv)
 subnet/network.go    → Core subnet calculations and Network type
 formatter/           → Output formatters: JSON, table (lipgloss), text
+                       formatter.go exports constants (DefaultTerminalWidth, column widths)
+                       and shared number formatting (FormatNumber, FormatMaxHosts)
 internal/ui/         → Shared lipgloss styles (styles.go)
 tui/                 → Bubble Tea TUI:
   model.go           → State management
   tree.go            → SubnetNode tree with embedded Network
-  render.go          → Main render orchestration
+  render.go          → Main render orchestration (pure functions for scroll calculations)
   render_format.go   → IP range abbreviation helpers
   render_cells.go    → Cell span calculations
   keys.go            → Key bindings
@@ -58,6 +60,17 @@ PersistentPreRun: func(cmd *cobra.Command, args []string) {
 **Big.Int for IPv6:** Use `math/big` for host calculations to avoid overflow on large IPv6 subnets.
 
 **Subnet safety:** `subnet.MaxGeneratedSubnets` (1,000,000) prevents OOM from very large splits.
+
+**Formatter constants:** Use constants from `formatter` package for consistent table layouts:
+
+```go
+import "github.com/JakeTRogers/subnetCalc/formatter"
+
+width := formatter.DefaultTerminalWidth  // 120
+// Column widths: colIndexWidth, colSubnetWidth, colMaskWidth, etc.
+hostStr := formatter.FormatNumber(254)   // "254"
+hostStr := formatter.FormatMaxHosts(bigInt) // "1,234,567" or ">2^64"
+```
 
 **Shared styles:** Import styles from `internal/ui` for consistent formatting:
 
