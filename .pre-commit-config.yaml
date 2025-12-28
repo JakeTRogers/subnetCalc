@@ -19,12 +19,18 @@ repos:
     hooks:
       - id: go-test
         name: go test
-        entry: go test ./... -v
+        entry: go test ./... -race -coverprofile=coverage.out
         language: system
         pass_filenames: false
-        files: \.go$
-        stages:
-          - pre-commit
+        types: [go]
+        stages: [pre-commit]
+      - id: go-test-coverage
+        name: go test coverage check (cmd package)
+        entry: bash -c 'go test -coverprofile=coverage.out ./... > /dev/null 2>&1 && COVERAGE=$(go tool cover -func=coverage.out | grep "^total:" | awk "{print \$3}" | sed "s/%//"); if (( $(echo "$COVERAGE < 85" | bc -l) )); then echo "Coverage below 85% ${COVERAGE}%"; exit 1; else echo "Coverage OK ${COVERAGE}%"; fi'
+        language: system
+        pass_filenames: false
+        types: [go]
+        stages: [pre-commit]
   - repo: https://github.com/commitizen-tools/commitizen
     rev: 9f3ec868c0429155a46b4819b625d47a8522a3d5  # frozen: v4.10.0
     hooks:
