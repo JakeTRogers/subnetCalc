@@ -6,7 +6,8 @@ import (
 	"testing"
 )
 
-func TestNewNetwork(t *testing.T) {
+func TestNewNetwork_variations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		cidr            string
@@ -99,7 +100,8 @@ func TestNewNetwork(t *testing.T) {
 	}
 }
 
-func TestNetworkSplit(t *testing.T) {
+func TestNetwork_Split(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		cidr        string
@@ -183,7 +185,8 @@ func TestNetworkSplit(t *testing.T) {
 	}
 }
 
-func TestCalculateMaxHosts(t *testing.T) {
+func TestCalculateMaxHosts_variations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		addrBits int
@@ -232,7 +235,8 @@ func TestCalculateMaxHosts(t *testing.T) {
 	}
 }
 
-func TestCalculateSubnetMask(t *testing.T) {
+func TestCalculateSubnetMask_IPv4(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		maskBits int
@@ -275,7 +279,8 @@ func TestCalculateSubnetMask(t *testing.T) {
 	}
 }
 
-func TestCalculateBroadcastAddr(t *testing.T) {
+func TestCalculateBroadcastAddr_variations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		networkAddr string
@@ -308,13 +313,12 @@ func TestCalculateBroadcastAddr(t *testing.T) {
 	}
 }
 
-func TestCalculator(t *testing.T) {
-	calc := NewCalculator()
-
-	t.Run("Calculate", func(t *testing.T) {
-		n, err := calc.Calculate("192.168.1.0/24")
+func TestNetwork_methods(t *testing.T) {
+	t.Parallel()
+	t.Run("NewNetwork", func(t *testing.T) {
+		n, err := NewNetwork("192.168.1.0/24")
 		if err != nil {
-			t.Fatalf("Calculate() error = %v", err)
+			t.Fatalf("NewNetwork() error = %v", err)
 		}
 		if n.MaskBits != 24 {
 			t.Errorf("MaskBits = %v, want 24", n.MaskBits)
@@ -322,8 +326,8 @@ func TestCalculator(t *testing.T) {
 	})
 
 	t.Run("Split", func(t *testing.T) {
-		n, _ := calc.Calculate("192.168.1.0/24")
-		err := calc.Split(&n, 26)
+		n, _ := NewNetwork("192.168.1.0/24")
+		err := n.Split(26)
 		if err != nil {
 			t.Fatalf("Split() error = %v", err)
 		}

@@ -12,21 +12,27 @@ repos:
       - id: trailing-whitespace
         args: [ --markdown-linebreak-ext=md ]
   - repo: https://github.com/golangci/golangci-lint
-    rev: 43d03392d7dc3746fa776dbddd66dfcccff70651  # frozen: v2.4.0
+    rev: 9f61b0f53f80672872fced07b6874397c3ed197b  # frozen: v2.7.2
     hooks:
       - id: golangci-lint-full
   - repo: local
     hooks:
       - id: go-test
         name: go test
-        entry: go test ./... -v
+        entry: go test ./... -race -coverprofile=coverage.out
         language: system
         pass_filenames: false
-        files: \.go$
-        stages:
-          - pre-commit
+        types: [go]
+        stages: [pre-commit]
+      - id: go-test-coverage
+        name: go test coverage check (cmd package)
+        entry: bash -c 'go test -coverprofile=coverage.out ./... > /dev/null 2>&1 && COVERAGE=$(go tool cover -func=coverage.out | grep "^total:" | awk "{print \$3}" | sed "s/%//"); if (( $(echo "$COVERAGE < 85" | bc -l) )); then echo "Coverage below 85% ${COVERAGE}%"; exit 1; else echo "Coverage OK ${COVERAGE}%"; fi'
+        language: system
+        pass_filenames: false
+        types: [go]
+        stages: [pre-commit]
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: c710c9f541ae452547fdce5c360929f007ec4867  # frozen: v4.8.3
+    rev: 9f3ec868c0429155a46b4819b625d47a8522a3d5  # frozen: v4.10.0
     hooks:
       - id: commitizen
         stages:

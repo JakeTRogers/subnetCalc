@@ -1,3 +1,6 @@
+// Package tui provides an interactive terminal user interface for subnet calculations.
+// It uses Bubble Tea for the TUI framework and allows users to interactively split
+// and join subnets, visualize subnet hierarchies, and export results as JSON.
 package tui
 
 import (
@@ -10,22 +13,33 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/JakeTRogers/subnetCalc/formatter"
+	"github.com/JakeTRogers/subnetCalc/internal/ui"
 )
 
-// Model is the Bubble Tea model for the TUI.
+const (
+	// MaxSplitDepth is the maximum prefix length for subnet splitting (e.g., /30).
+	// Splitting beyond this depth is not allowed as /31 and /32 networks have no usable hosts.
+	MaxSplitDepth = 30
+)
+
+// Model is the Bubble Tea model for the interactive subnet TUI.
+// It maintains the subnet tree state, cursor position, viewport dimensions,
+// and UI components like help and status messages.
 type Model struct {
-	root           *SubnetNode
+	root           *SubnetNode   // Root of the subnet tree
 	rows           []*SubnetNode // Flattened list of visible leaf nodes
-	cursor         int
-	width          int
-	height         int
-	maxSplitDepth  int // Maximum prefix length (e.g., 30 for /30)
-	initialPrefix  int // The starting prefix length
-	scrollOffset   int // Horizontal scroll offset for split columns
-	verticalScroll int // Vertical scroll offset for rows
-	help           help.Model
-	keys           keyMap
-	statusMsg      string // Status message to display
+	cursor         int           // Current row selection
+	width          int           // Terminal width
+	height         int           // Terminal height
+	maxSplitDepth  int           // Maximum prefix length (e.g., 30 for /30)
+	initialPrefix  int           // The starting prefix length
+	scrollOffset   int           // Horizontal scroll offset for split columns
+	verticalScroll int           // Vertical scroll offset for rows
+	help           help.Model    // Help component
+	keys           keyMap        // Key bindings
+	statusMsg      string        // Status message to display
 }
 
 // NewModel creates a new TUI model from a CIDR string.
@@ -44,8 +58,8 @@ func NewModel(cidr string, targetBits int) (Model, error) {
 		if targetBits <= prefix.Bits() {
 			return Model{}, fmt.Errorf("target subnet size /%d must be larger than the network size /%d", targetBits, prefix.Bits())
 		}
-		if targetBits > 30 {
-			return Model{}, fmt.Errorf("target subnet size /%d exceeds maximum allowed /30", targetBits)
+		if targetBits > MaxSplitDepth {
+			return Model{}, fmt.Errorf("target subnet size /%d exceeds maximum allowed /%d", targetBits, MaxSplitDepth)
 		}
 	}
 
@@ -59,7 +73,7 @@ func NewModel(cidr string, targetBits int) (Model, error) {
 	m := Model{
 		root:          root,
 		cursor:        0,
-		maxSplitDepth: 30, // Allow splitting down to /30
+		maxSplitDepth: MaxSplitDepth,
 		initialPrefix: prefix.Bits(),
 		scrollOffset:  0,
 		help:          help.New(),
@@ -70,7 +84,7 @@ func NewModel(cidr string, targetBits int) (Model, error) {
 	return m, nil
 }
 
-// Init implements tea.Model.
+// Init implements tea.Model. It returns nil as no initial command is needed.
 func (m Model) Init() tea.Cmd {
 	return nil
 }
@@ -85,7 +99,8 @@ func clearStatusAfter() tea.Cmd {
 	})
 }
 
-// Update implements tea.Model.
+// Update implements tea.Model. It handles keyboard input, window resize events,
+// and status message clearing.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case clearStatusMsg:
@@ -147,7 +162,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Split):
 		if len(m.rows) > 0 && m.cursor < len(m.rows) {
 			node := m.rows[m.cursor]
-			if node.CIDR.Bits() < m.maxSplitDepth {
+			if node.CIDR().Bits() < m.maxSplitDepth {
 				node.Split()
 				m.updateRows()
 			}
@@ -180,7 +195,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View implements tea.Model.
+// View implements tea.Model. It renders the TUI including the title,
+// subnet table, status messages, and help text.
 func (m Model) View() string {
 	if m.width == 0 {
 		return "Loading..."
@@ -189,7 +205,7 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	// Title
-	title := titleStyle.Render(fmt.Sprintf("🌐 Subnet Calculator - %s", m.root.CIDR.String()))
+	title := ui.TitleStyle.Render(fmt.Sprintf("🌐 Subnet Calculator - %s", m.root.CIDR().String()))
 	b.WriteString(title)
 	b.WriteString("\n\n")
 
@@ -200,7 +216,7 @@ func (m Model) View() string {
 
 	// Status message
 	if m.statusMsg != "" {
-		b.WriteString(statusStyle.Render(m.statusMsg))
+		b.WriteString(ui.StatusStyle.Render(m.statusMsg))
 		b.WriteString("\n")
 	}
 	b.WriteString("\n")
@@ -229,8 +245,8 @@ func (m *Model) hasSplits() bool {
 func (m *Model) getMaxBits() int {
 	maxBits := m.initialPrefix
 	for _, row := range m.rows {
-		if row.CIDR.Bits() > maxBits {
-			maxBits = row.CIDR.Bits()
+		if row.CIDR().Bits() > maxBits {
+			maxBits = row.CIDR().Bits()
 		}
 	}
 	return maxBits
@@ -250,30 +266,30 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	minWidths := minColumnWidths()
 
 	// Determine if IPv6 by checking root address
-	isIPv6 := m.root.CIDR.Addr().Is6()
+	isIPv6 := m.root.CIDR().Addr().Is6()
 
 	// Calculate content-based widths
 	var maxSubnet, maxMask, maxRange, maxHosts int
 
 	for _, node := range m.rows {
-		cidrLen := len(node.CIDR.String())
+		cidrLen := len(node.CIDR().String())
 		if cidrLen > maxSubnet {
 			maxSubnet = cidrLen
 		}
 
-		maskLen := len(node.SubnetMask.String())
+		maskLen := len(node.SubnetMask().String())
 		if maskLen > maxMask {
 			maxMask = maskLen
 		}
 
-		networkAddr := node.CIDR.Masked().Addr()
-		rangeStr := formatRangeAbbreviated(node.FirstIP.String(), node.LastIP.String(), networkAddr.String())
+		networkAddr := node.CIDR().Masked().Addr()
+		rangeStr := formatRangeAbbreviated(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
 		rangeLen := len(rangeStr)
 		if rangeLen > maxRange {
 			maxRange = rangeLen
 		}
 
-		hostsStr := formatNumber(node.Hosts)
+		hostsStr := formatter.FormatNumber(node.Hosts())
 		hostsLen := len(hostsStr)
 		if hostsLen > maxHosts {
 			maxHosts = hostsLen
@@ -352,8 +368,9 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	}
 }
 
-// Run starts the TUI.
-// Optional initialSplit parameter specifies initial split depth (0 means no initial split).
+// Run starts the interactive TUI for the given CIDR.
+// The initialSplit parameter specifies the initial split depth (0 means no initial split).
+// When the user quits after pressing 'e' (export), the JSON representation is printed.
 func Run(cidr string, initialSplit int) error {
 	model, err := NewModel(cidr, initialSplit)
 	if err != nil {

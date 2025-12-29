@@ -9,7 +9,8 @@ import (
 	"github.com/JakeTRogers/subnetCalc/subnet"
 )
 
-func TestNew(t *testing.T) {
+func TestNew_formatterTypes(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		cfg      Config
@@ -63,7 +64,8 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestDefaultConfig(t *testing.T) {
+func TestDefaultConfig_values(t *testing.T) {
+	t.Parallel()
 	cfg := DefaultConfig()
 
 	if cfg.Format != FormatTable {
@@ -77,7 +79,8 @@ func TestDefaultConfig(t *testing.T) {
 	}
 }
 
-func TestJSONFormatter_FormatNetwork(t *testing.T) {
+func TestJSONFormatter_FormatNetwork_variations(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -126,7 +129,8 @@ func TestJSONFormatter_FormatNetwork(t *testing.T) {
 	}
 }
 
-func TestJSONFormatter_FormatSubnets(t *testing.T) {
+func TestJSONFormatter_FormatSubnets_withSplit(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -161,7 +165,8 @@ func TestJSONFormatter_FormatSubnets(t *testing.T) {
 	}
 }
 
-func TestTableFormatter_FormatNetwork(t *testing.T) {
+func TestTableFormatter_FormatNetwork_content(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -189,7 +194,8 @@ func TestTableFormatter_FormatNetwork(t *testing.T) {
 	}
 }
 
-func TestTableFormatter_FormatSubnets(t *testing.T) {
+func TestTableFormatter_FormatSubnets_content(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -221,7 +227,8 @@ func TestTableFormatter_FormatSubnets(t *testing.T) {
 	}
 }
 
-func TestTableFormatter_FormatSubnets_Empty(t *testing.T) {
+func TestTableFormatter_FormatSubnets_empty(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -238,7 +245,8 @@ func TestTableFormatter_FormatSubnets_Empty(t *testing.T) {
 	}
 }
 
-func TestTextFormatter_FormatNetwork(t *testing.T) {
+func TestTextFormatter_FormatNetwork_content(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("10.0.0.0/8")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -264,7 +272,8 @@ func TestTextFormatter_FormatNetwork(t *testing.T) {
 	}
 }
 
-func TestTextFormatter_FormatSubnets(t *testing.T) {
+func TestTextFormatter_FormatSubnets_content(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -288,7 +297,8 @@ func TestTextFormatter_FormatSubnets(t *testing.T) {
 	}
 }
 
-func TestToNetworkInfo(t *testing.T) {
+func TestToNetworkInfo_conversion(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -313,7 +323,8 @@ func TestToNetworkInfo(t *testing.T) {
 	}
 }
 
-func TestToSubnetInfo(t *testing.T) {
+func TestToSubnetInfo_conversion(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/26")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -332,7 +343,8 @@ func TestToSubnetInfo(t *testing.T) {
 	}
 }
 
-func TestToSubnetInfoSlice(t *testing.T) {
+func TestToSubnetInfoSlice_conversion(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("192.168.1.0/24")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -355,7 +367,8 @@ func TestToSubnetInfoSlice(t *testing.T) {
 	}
 }
 
-func TestExtractPrefix(t *testing.T) {
+func TestExtractPrefix_variations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		cidr string
 		want string
@@ -374,13 +387,15 @@ func TestExtractPrefix(t *testing.T) {
 	}
 }
 
-func TestFormatterInterface(t *testing.T) {
+func TestFormatter_interfaceCompliance(t *testing.T) {
+	t.Parallel()
 	var _ Formatter = (*JSONFormatter)(nil)
 	var _ Formatter = (*TableFormatter)(nil)
 	var _ Formatter = (*TextFormatter)(nil)
 }
 
-func TestJSONFormatter_LargeIPv6(t *testing.T) {
+func TestJSONFormatter_FormatNetwork_largeIPv6(t *testing.T) {
+	t.Parallel()
 	n, err := subnet.NewNetwork("2001:db8::/32")
 	if err != nil {
 		t.Fatalf("Failed to create network: %v", err)
@@ -412,7 +427,8 @@ func TestJSONFormatter_LargeIPv6(t *testing.T) {
 	}
 }
 
-func TestFormatMaxHosts(t *testing.T) {
+func TestFormatMaxHosts_variations(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		maxHosts *big.Int
@@ -463,6 +479,38 @@ func TestFormatMaxHosts(t *testing.T) {
 			t.Errorf("FormatMaxHosts(2^64) = %v, want >2^64", got)
 		}
 	})
+}
+
+func TestFormatNumber_variations(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		input uint
+		want  string
+	}{
+		{"Zero", 0, "0"},
+		{"Single digit", 5, "5"},
+		{"Two digits", 42, "42"},
+		{"Three digits", 999, "999"},
+		{"Four digits", 1234, "1,234"},
+		{"Five digits", 12345, "12,345"},
+		{"Six digits", 123456, "123,456"},
+		{"Seven digits", 1234567, "1,234,567"},
+		{"Eight digits", 12345678, "12,345,678"},
+		{"Nine digits", 123456789, "123,456,789"},
+		{"Large number", 4294967295, "4,294,967,295"},
+		{"One thousand", 1000, "1,000"},
+		{"One million", 1000000, "1,000,000"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatNumber(tt.input)
+			if got != tt.want {
+				t.Errorf("FormatNumber(%d) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
 }
 
 func BenchmarkJSONFormatter(b *testing.B) {

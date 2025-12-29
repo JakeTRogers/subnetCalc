@@ -9,22 +9,26 @@ import (
 	"golang.org/x/term"
 
 	"github.com/JakeTRogers/subnetCalc/formatter"
+	"github.com/JakeTRogers/subnetCalc/logger"
 	"github.com/JakeTRogers/subnetCalc/subnet"
 	"github.com/JakeTRogers/subnetCalc/tui"
-	"github.com/JakeTRogers/subnetCalc/utils"
 )
 
-var subnetMaskBits int
-var interactive bool
-var version = "v1.0.0"
+var version = "v1.0.1"
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:          "subnetCalc <CIDR>",
-	Version:      version,
-	Short:        "calculate subnet",
-	SilenceUsage: true,
-	Long: `subnetCalc is a CLI application to calculate subnets when given an IP address and a subnet mask in CIDR notation. It
+// rootCmd is the package-level command instance used by Execute().
+// Tests should use NewRootCommand() for isolated instances.
+var rootCmd *cobra.Command
+
+// NewRootCommand creates and returns a new root command instance.
+// This constructor enables test isolation by providing fresh command instances.
+func NewRootCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "subnetCalc <CIDR>",
+		Version:      version,
+		Short:        "calculate subnet",
+		SilenceUsage: true,
+		Long: `subnetCalc is a CLI application to calculate subnets when given an IP address and a subnet mask in CIDR notation. It
 will return the requested network, host address range, broadcast address, subnet mask, and the maximum number of hosts.
 
 subnetCalc can also be used to carve up a network into subnets by providing subnet mask size. It then lists them in a
@@ -35,72 +39,102 @@ Examples:
   subnetCalc 10.12.34.56/19
 
   # Get network information for a CIDR and carve it up into subnets:
-  subnetCalc 10.12.0.0/16 --subnet_size 18
+  subnetCalc 10.12.0.0/16 --subnet-size 18
 
   # Get network information for a CIDR, carve it up into subnets, and print the output in JSON format:
-  subnetCalc 192.168.10.0/24 --subnet_size 26 --json
+  subnetCalc 192.168.10.0/24 --subnet-size 26 --json
 
   # Launch interactive TUI for subnet splitting/joining:
   subnetCalc 10.0.0.0/8 --interactive
 
   # Launch interactive TUI with initial subnet split:
-  subnetCalc 192.168.0.0/16 --subnet_size 24 --interactive
+  subnetCalc 192.168.0.0/16 --subnet-size 24 --interactive
 `,
 
-	PersistentPreRun: utils.SetLogLevel,
-	Args:             cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// If no arguments are provided, print help and exit cleanly.
-		if len(args) == 0 {
-			return cmd.Help()
-		}
-
-		out := cmd.OutOrStdout()
-
-		// if interactive flag is set, launch the TUI
-		if interactive {
-			// Pass subnet_size to TUI if specified, otherwise 0 for no initial split
-			initialSplit := 0
-			if cmd.Flags().Changed("subnet_size") {
-				initialSplit = subnetMaskBits
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			verboseCount, err := cmd.Flags().GetCount("verbose")
+			if err != nil {
+				log := logger.GetLogger()
+				log.Error().Err(err).Msg("failed to read verbose flag")
+				return
 			}
-			return tui.Run(args[0], initialSplit)
-		}
+			logger.SetLogLevel(verboseCount)
+		},
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			log := logger.GetLogger()
 
-		// Use the subnet package to calculate network details
-		calc := subnet.NewCalculator()
-		n, err := calc.Calculate(args[0])
-		if err != nil {
-			return err
-		}
-
-		// if subnet_size flag is set, carve up the supernet into subnets of the requested size
-		if cmd.Flags().Changed("subnet_size") {
-			if err := calc.Split(&n, subnetMaskBits); err != nil {
-				return err
+			// If no arguments are provided, print help and exit cleanly.
+			if len(args) == 0 {
+				return cmd.Help()
 			}
-		}
 
-		// print the network details in the requested format
-		cfg := formatter.DefaultConfig()
-		if cmd.Flags().Changed("json") {
-			cfg.Format = formatter.FormatJSON
-		} else {
-			cfg.Width = terminalWidth(out, cfg.Width)
-		}
+			out := cmd.OutOrStdout()
 
-		f := formatter.New(cfg)
-		return printNetworkOutput(out, cfg.Format, f, n)
-	},
+			// Retrieve flag values from command instance (not package-level variables)
+			interactive, _ := cmd.Flags().GetBool("interactive")
+			subnetMaskBits, _ := cmd.Flags().GetInt("subnet-size")
+
+			log.Debug().Str("cidr", args[0]).Bool("interactive", interactive).Int("subnet_size", subnetMaskBits).Msg("processing input")
+			if interactive {
+				// Pass subnet-size to TUI if specified, otherwise 0 for no initial split
+				initialSplit := 0
+				if cmd.Flags().Changed("subnet-size") {
+					initialSplit = subnetMaskBits
+				}
+				log.Warn().Str("cidr", args[0]).Int("initial_split", initialSplit).Msg("entering interactive mode, logging disabled")
+				logger.Disable()
+				return tui.Run(args[0], initialSplit)
+			}
+
+			// Use the subnet package to calculate network details
+			n, err := subnet.NewNetwork(args[0])
+			if err != nil {
+				return fmt.Errorf("parsing network: %w", err)
+			}
+			log.Info().Str("cidr", n.CIDR.String()).Int("mask_bits", n.MaskBits).Msg("network parsed successfully")
+
+			// if subnet-size flag is set, carve up the supernet into subnets of the requested size
+			if cmd.Flags().Changed("subnet-size") {
+				if err := n.Split(subnetMaskBits); err != nil {
+					return fmt.Errorf("splitting network: %w", err)
+				}
+				log.Info().Int("target_bits", subnetMaskBits).Int("subnet_count", len(n.Subnets)).Msg("network split completed")
+			}
+
+			// print the network details in the requested format
+			cfg := formatter.DefaultConfig()
+			if cmd.Flags().Changed("json") {
+				cfg.Format = formatter.FormatJSON
+			} else {
+				cfg.Width = terminalWidth(out, cfg.Width)
+			}
+
+			f := formatter.New(cfg)
+			return printNetworkOutput(out, cfg.Format, f, n)
+		},
+	}
+
+	// Register flags on the command instance
+	cmd.SetVersionTemplate("subnetCalc {{.Version}}\n")
+	cmd.Flags().BoolP("json", "j", false, "output information for the requested CIDR in json format")
+	cmd.Flags().BoolP("interactive", "i", false, "launch interactive TUI for subnet splitting/joining")
+	cmd.Flags().IntP("subnet-size", "s", 0, "number of subnet mask bits to be used in carving up the supernet")
+	cmd.PersistentFlags().CountP("verbose", "v", "increase verbosity")
+	cmd.MarkFlagsMutuallyExclusive("interactive", "json")
+
+	return cmd
 }
 
-// printNetworkOutput prints network information using the provided formatter.
+// printNetworkOutput writes formatted network information to the provided writer.
+// For JSON format, it outputs a single JSON object containing the network and any subnets.
+// For other formats, it outputs the network summary followed by a subnet table if present.
 func printNetworkOutput(w io.Writer, format formatter.OutputFormat, f formatter.Formatter, n subnet.Network) error {
 	// JSON output is represented as a single object (with optional subnets included).
 	if format == formatter.FormatJSON {
 		output, err := f.FormatSubnets(n)
 		if err != nil {
-			return err
+			return fmt.Errorf("formatting network as JSON: %w", err)
 		}
 		_, err = fmt.Fprintln(w, output)
 		return err
@@ -108,7 +142,7 @@ func printNetworkOutput(w io.Writer, format formatter.OutputFormat, f formatter.
 
 	networkInfo, err := f.FormatNetwork(n)
 	if err != nil {
-		return err
+		return fmt.Errorf("formatting network info: %w", err)
 	}
 	if _, err := io.WriteString(w, networkInfo); err != nil {
 		return err
@@ -120,7 +154,7 @@ func printNetworkOutput(w io.Writer, format formatter.OutputFormat, f formatter.
 
 	subnetsOutput, err := f.FormatSubnets(n)
 	if err != nil {
-		return err
+		return fmt.Errorf("formatting subnets: %w", err)
 	}
 	_, err = fmt.Fprintln(w, subnetsOutput)
 	return err
@@ -142,17 +176,12 @@ func terminalWidth(out io.Writer, fallback int) int {
 	return w
 }
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+// Execute runs the root command and returns any error.
+// The caller (main.go) is responsible for handling the error and exiting.
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 func init() {
-	rootCmd.SetVersionTemplate("subnetCalc {{.Version}}\n")
-	rootCmd.Flags().BoolP("json", "j", false, "output information for the requested CIDR in json format")
-	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "launch interactive TUI for subnet splitting/joining")
-	rootCmd.Flags().IntVarP(&subnetMaskBits, "subnet_size", "s", 0, "number of subnet mask bits to be used in carving up the supernet")
-	rootCmd.PersistentFlags().CountP("verbose", "v", "increase verbosity")
-	rootCmd.MarkFlagsMutuallyExclusive("interactive", "json")
+	rootCmd = NewRootCommand()
 }

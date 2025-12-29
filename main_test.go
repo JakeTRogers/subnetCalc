@@ -53,8 +53,8 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// TestMainIntegration tests the main CLI application end-to-end
-func TestMainIntegration(t *testing.T) {
+// TestCLI_integration tests the main CLI application end-to-end
+func TestCLI_integration(t *testing.T) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -75,7 +75,7 @@ func TestMainIntegration(t *testing.T) {
 		},
 		{
 			name:           "CIDR with subnet flag",
-			args:           []string{"192.168.1.0/24", "--subnet_size", "26"},
+			args:           []string{"192.168.1.0/24", "--subnet-size", "26"},
 			expectError:    false,
 			expectedOutput: []string{"Network:", "192.168.1.0/24", "contains", "/26", "subnets"},
 		},
@@ -151,8 +151,8 @@ func TestMainIntegration(t *testing.T) {
 	}
 }
 
-// TestJSONOutputStructure validates the JSON output structure
-func TestJSONOutputStructure(t *testing.T) {
+// TestCLI_JSONOutputStructure validates the JSON output structure
+func TestCLI_JSONOutputStructure(t *testing.T) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -168,7 +168,7 @@ func TestJSONOutputStructure(t *testing.T) {
 		},
 		{
 			name: "Network with subnets JSON",
-			args: []string{"192.168.1.0/24", "--subnet_size", "26", "--json"},
+			args: []string{"192.168.1.0/24", "--subnet-size", "26", "--json"},
 		},
 	}
 
@@ -202,9 +202,9 @@ func TestJSONOutputStructure(t *testing.T) {
 			}
 
 			// If subnets were requested, check subnets array
-			if strings.Contains(strings.Join(tt.args, " "), "subnet_size") {
+			if strings.Contains(strings.Join(tt.args, " "), "subnet-size") {
 				if subnets, exists := result["subnets"]; !exists {
-					t.Error("JSON output should contain subnets array when subnet_size is specified")
+					t.Error("JSON output should contain subnets array when subnet-size is specified")
 				} else if subnetSlice, ok := subnets.([]any); !ok || len(subnetSlice) == 0 {
 					t.Error("Subnets should be a non-empty array")
 				}
@@ -213,8 +213,8 @@ func TestJSONOutputStructure(t *testing.T) {
 	}
 }
 
-// TestErrorHandling tests various error conditions
-func TestErrorHandling(t *testing.T) {
+// TestCLI_errorHandling tests various error conditions
+func TestCLI_errorHandling(t *testing.T) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -247,7 +247,7 @@ func TestErrorHandling(t *testing.T) {
 		},
 		{
 			name:        "Subnet size smaller than network",
-			args:        []string{"192.168.1.0/24", "--subnet_size", "20"},
+			args:        []string{"192.168.1.0/24", "--subnet-size", "20"},
 			expectError: true,
 		},
 	}
@@ -272,8 +272,8 @@ func TestErrorHandling(t *testing.T) {
 	}
 }
 
-// TestSubnetCalculations validates specific subnet calculation scenarios
-func TestSubnetCalculations(t *testing.T) {
+// TestCLI_subnetCalculations validates specific subnet calculation scenarios
+func TestCLI_subnetCalculations(t *testing.T) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -303,7 +303,7 @@ func TestSubnetCalculations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout bytes.Buffer
 
-			cmd := exec.Command(binary, tt.cidr, "--subnet_size", tt.subnetSize)
+			cmd := exec.Command(binary, tt.cidr, "--subnet-size", tt.subnetSize)
 			cmd.Stdout = &stdout
 
 			err := cmd.Run()
@@ -322,8 +322,8 @@ func TestSubnetCalculations(t *testing.T) {
 	}
 }
 
-// TestFlags tests various flag combinations
-func TestFlags(t *testing.T) {
+// TestCLI_flags tests various flag combinations
+func TestCLI_flags(t *testing.T) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)
@@ -337,7 +337,7 @@ func TestFlags(t *testing.T) {
 	}{
 		{
 			name:           "Subnet size flag with styled output",
-			args:           []string{"192.168.1.0/24", "--subnet_size", "26"},
+			args:           []string{"192.168.1.0/24", "--subnet-size", "26"},
 			expectedOutput: []string{"contains 4", "/26 subnets"},
 			shouldFail:     false,
 		},
@@ -392,8 +392,8 @@ func TestFlags(t *testing.T) {
 	}
 }
 
-// BenchmarkCLIExecution benchmarks the CLI execution time
-func BenchmarkCLIExecution(b *testing.B) {
+// BenchmarkCLI_execution benchmarks the CLI execution time
+func BenchmarkCLI_execution(b *testing.B) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		b.Fatalf("Failed to build binary: %v", err)
@@ -407,8 +407,8 @@ func BenchmarkCLIExecution(b *testing.B) {
 	}
 }
 
-// TestIPv6Handling tests IPv6 address handling (expected to be limited)
-func TestIPv6Handling(t *testing.T) {
+// TestCLI_IPv6Handling tests IPv6 address handling (expected to be limited)
+func TestCLI_IPv6Handling(t *testing.T) {
 	binary, err := buildTestBinary()
 	if err != nil {
 		t.Fatalf("Failed to build binary: %v", err)

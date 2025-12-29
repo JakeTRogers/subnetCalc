@@ -6,7 +6,19 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/JakeTRogers/subnetCalc/internal/ui"
+	"github.com/JakeTRogers/subnetCalc/logger"
 	"github.com/JakeTRogers/subnetCalc/subnet"
+)
+
+// Table column width constants for consistent formatting.
+const (
+	colIndexWidth     = 4  // Width for row number column
+	colSubnetWidth    = 20 // Width for subnet CIDR column
+	colMaskWidth      = 16 // Width for subnet mask column
+	colRangeWidth     = 30 // Width for assignable IP range column
+	colBroadcastWidth = 16 // Width for broadcast address column
+	colHostsWidth     = 12 // Width for host count column
 )
 
 // TableFormatter formats network information as styled tables.
@@ -19,32 +31,18 @@ func NewTableFormatter(terminalWidth int) *TableFormatter {
 	return &TableFormatter{terminalWidth: terminalWidth}
 }
 
-// Styles for table rendering
-var (
-	headerStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("24")).
-			Padding(0, 1)
-
-	borderStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("62"))
-
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("212")).
-			MarginBottom(1)
-)
-
 // FormatNetwork formats a single network's information as a styled table.
 func (f *TableFormatter) FormatNetwork(n subnet.Network) (string, error) {
+	log := logger.GetLogger()
+	log.Trace().Str("cidr", n.CIDR.String()).Msg("formatting network as table")
 	info := ToNetworkInfo(n)
 	return FormatNetworkSummary(info), nil
 }
 
 // FormatSubnets formats a network with its subnets as a styled table.
 func (f *TableFormatter) FormatSubnets(n subnet.Network) (string, error) {
+	log := logger.GetLogger()
+	log.Trace().Str("cidr", n.CIDR.String()).Int("subnet_count", len(n.Subnets)).Msg("formatting subnets as table")
 	if len(n.Subnets) == 0 {
 		return "", nil
 	}
@@ -59,22 +57,14 @@ func (f *TableFormatter) renderTable(parentCIDR string, subnets []SubnetInfo) st
 		return "No subnets to display"
 	}
 
-	// Column widths
-	numWidth := 4
-	subnetWidth := 20
-	maskWidth := 16
-	rangeWidth := 30
-	broadcastWidth := 16
-	hostsWidth := 12
-
 	// Build header
 	var headerParts []string
-	headerParts = append(headerParts, headerStyle.Width(numWidth).Render("#"))
-	headerParts = append(headerParts, headerStyle.Width(subnetWidth).Render("Subnet"))
-	headerParts = append(headerParts, headerStyle.Width(maskWidth).Render("Subnet Mask"))
-	headerParts = append(headerParts, headerStyle.Width(rangeWidth).Render("Assignable Range"))
-	headerParts = append(headerParts, headerStyle.Width(broadcastWidth).Render("Broadcast"))
-	headerParts = append(headerParts, headerStyle.Width(hostsWidth).Render("Hosts"))
+	headerParts = append(headerParts, ui.HeaderStyle.Width(colIndexWidth).Render("#"))
+	headerParts = append(headerParts, ui.HeaderStyle.Width(colSubnetWidth).Render("Subnet"))
+	headerParts = append(headerParts, ui.HeaderStyle.Width(colMaskWidth).Render("Subnet Mask"))
+	headerParts = append(headerParts, ui.HeaderStyle.Width(colRangeWidth).Render("Assignable Range"))
+	headerParts = append(headerParts, ui.HeaderStyle.Width(colBroadcastWidth).Render("Broadcast"))
+	headerParts = append(headerParts, ui.HeaderStyle.Width(colHostsWidth).Render("Hosts"))
 
 	header := lipgloss.JoinHorizontal(lipgloss.Top, headerParts...)
 
@@ -90,13 +80,13 @@ func (f *TableFormatter) renderTable(parentCIDR string, subnets []SubnetInfo) st
 			style = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
 		}
 
-		num := style.Width(numWidth).Render(fmt.Sprintf("%d", i+1))
-		cidr := style.Width(subnetWidth).Render(sn.CIDR)
-		mask := style.Width(maskWidth).Render(sn.SubnetMask)
+		num := style.Width(colIndexWidth).Render(fmt.Sprintf("%d", i+1))
+		cidr := style.Width(colSubnetWidth).Render(sn.CIDR)
+		mask := style.Width(colMaskWidth).Render(sn.SubnetMask)
 		rangeStr := fmt.Sprintf("%s - %s", sn.FirstIP, sn.LastIP)
-		rangeCell := style.Width(rangeWidth).Render(rangeStr)
-		broadcastCell := style.Width(broadcastWidth).Render(sn.Broadcast)
-		hosts := style.Width(hostsWidth).Render(sn.Hosts)
+		rangeCell := style.Width(colRangeWidth).Render(rangeStr)
+		broadcastCell := style.Width(colBroadcastWidth).Render(sn.Broadcast)
+		hosts := style.Width(colHostsWidth).Render(sn.Hosts)
 
 		var rowParts []string
 		rowParts = append(rowParts, num, cidr, mask, rangeCell, broadcastCell, hosts)
@@ -104,14 +94,14 @@ func (f *TableFormatter) renderTable(parentCIDR string, subnets []SubnetInfo) st
 	}
 
 	// Title
-	title := titleStyle.Render(fmt.Sprintf("  %s contains %d /%s subnets:",
+	title := ui.TitleStyle.Render(fmt.Sprintf("  %s contains %d /%s subnets:",
 		parentCIDR, len(subnets), extractPrefix(subnets[0].CIDR)))
 
 	// Combine header and rows
 	allRows := append([]string{header}, rowStrings...)
 	table := lipgloss.JoinVertical(lipgloss.Left, allRows...)
 
-	return title + "\n" + borderStyle.Render(table)
+	return title + "\n" + ui.BorderStyle.Render(table)
 }
 
 // extractPrefix extracts the prefix number from a CIDR string.
