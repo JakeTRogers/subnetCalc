@@ -1,3 +1,9 @@
+## v1.0.1 (2025-12-29)
+
+### Refactor
+
+- rewrite to follow Go guidelines and add Copilot dev docs
+
 ## v1.0.0 (2025-12-26)
 
 ### Feature
