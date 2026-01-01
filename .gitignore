@@ -337,3 +337,6 @@ pkg
 debug
 
 dist/
+
+# Go binaries
+subnetCalc
