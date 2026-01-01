@@ -12,21 +12,23 @@ import (
 
 // columnWidths holds calculated column widths for the table.
 type columnWidths struct {
-	subnet   int
-	mask     int
-	rangeCol int
-	hosts    int
-	splitCol int
+	subnet        int
+	mask          int
+	rangeCol      int
+	rangeFirstMax int // max width of first IP part for alignment on "-"
+	hosts         int
+	splitCol      int
 }
 
 // minColumnWidths returns minimum widths for readability.
 func minColumnWidths() columnWidths {
 	return columnWidths{
-		subnet:   12, // "/xx" + some room
-		mask:     12, // "255.255.x.x"
-		rangeCol: 15, // abbreviated range
-		hosts:    7,  // "Hosts" (5 chars) + padding for lipgloss rendering
-		splitCol: 5,  // "/xx"
+		subnet:        12, // "/xx" + some room
+		mask:          12, // "255.255.x.x"
+		rangeCol:      15, // abbreviated range
+		rangeFirstMax: 0,  // will be calculated
+		hosts:         7,  // "Hosts" (5 chars) + padding for lipgloss rendering
+		splitCol:      5,  // "/xx"
 	}
 }
 
@@ -44,6 +46,7 @@ func (m Model) renderTable() string {
 	subnetWidth := widths.subnet
 	maskWidth := widths.mask
 	rangeWidth := widths.rangeCol
+	rangeFirstMax := widths.rangeFirstMax
 	hostsWidth := widths.hosts
 	splitColWidth := widths.splitCol
 
@@ -76,7 +79,7 @@ func (m Model) renderTable() string {
 	maxVerticalScroll := max(0, len(m.rows)-viewportHeight)
 
 	// Build rows
-	rowStrings := m.buildRows(verticalScroll, viewportHeight, subnetWidth, maskWidth, rangeWidth, hostsWidth, splitColWidth, maxBits, hasSplits, maxVisibleSplitCols, scrollOffset, columnSpans)
+	rowStrings := m.buildRows(verticalScroll, viewportHeight, subnetWidth, maskWidth, rangeWidth, rangeFirstMax, hostsWidth, splitColWidth, maxBits, hasSplits, maxVisibleSplitCols, scrollOffset, columnSpans)
 
 	// Scroll indicator
 	scrollIndicator := m.buildScrollIndicator(verticalScroll, hasSplits, numSplitLevels, maxVisibleSplitCols, scrollOffset, maxScroll, viewportHeight, maxVerticalScroll)
@@ -155,7 +158,7 @@ func (m Model) calculateVerticalScroll(viewportHeight int) int {
 }
 
 // buildRows constructs the visible row strings.
-func (m Model) buildRows(verticalScroll, viewportHeight, subnetWidth, maskWidth, rangeWidth, hostsWidth, splitColWidth, maxBits int, hasSplits bool, maxVisibleSplitCols, scrollOffset int, columnSpans map[int][]spanInfo) []string {
+func (m Model) buildRows(verticalScroll, viewportHeight, subnetWidth, maskWidth, rangeWidth, rangeFirstMax, hostsWidth, splitColWidth, maxBits int, hasSplits bool, maxVisibleSplitCols, scrollOffset int, columnSpans map[int][]spanInfo) []string {
 	var rowStrings []string
 
 	for rowIdx := verticalScroll; rowIdx < len(m.rows) && rowIdx < verticalScroll+viewportHeight; rowIdx++ {
@@ -171,8 +174,10 @@ func (m Model) buildRows(verticalScroll, viewportHeight, subnetWidth, maskWidth,
 		subnet := style.Width(subnetWidth).Render(node.CIDR().String())
 		mask := style.Width(maskWidth).Render(node.SubnetMask().String())
 
+		// Format range with aligned "-" separator
 		networkAddr := node.CIDR().Masked().Addr()
-		rangeStr := formatRangeAbbreviated(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
+		parts := formatRangeParts(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
+		rangeStr := fmt.Sprintf("%*s - %s", rangeFirstMax, parts.first, parts.last)
 		rangeCell := style.Width(rangeWidth).Render(rangeStr)
 
 		hosts := style.Width(hostsWidth).Render(formatter.FormatNumber(node.Hosts()))

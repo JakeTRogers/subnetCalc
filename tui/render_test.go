@@ -221,6 +221,63 @@ func TestFormatRangeAbbreviated_invalidIP(t *testing.T) {
 	}
 }
 
+func TestFormatRangeParts_variations(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		firstIP   string
+		lastIP    string
+		network   string
+		wantFirst string
+		wantLast  string
+	}{
+		{
+			name:      "Same first 3 octets",
+			firstIP:   "192.168.1.1",
+			lastIP:    "192.168.1.254",
+			network:   "192.168.1.0",
+			wantFirst: ".1",
+			wantLast:  ".254",
+		},
+		{
+			name:      "Different last 2 octets",
+			firstIP:   "10.0.0.1",
+			lastIP:    "10.0.255.254",
+			network:   "10.0.0.0",
+			wantFirst: ".0.1",
+			wantLast:  ".255.254",
+		},
+		{
+			name:      "Different last 3 octets",
+			firstIP:   "10.0.0.1",
+			lastIP:    "10.7.255.254",
+			network:   "10.0.0.0",
+			wantFirst: ".0.0.1",
+			wantLast:  ".7.255.254",
+		},
+		{
+			name:      "Invalid first IP",
+			firstIP:   "invalid",
+			lastIP:    "192.168.1.254",
+			network:   "192.168.1.0",
+			wantFirst: "invalid",
+			wantLast:  "192.168.1.254",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parts := formatRangeParts(tt.firstIP, tt.lastIP, tt.network)
+			if parts.first != tt.wantFirst {
+				t.Errorf("formatRangeParts().first = %q, want %q", parts.first, tt.wantFirst)
+			}
+			if parts.last != tt.wantLast {
+				t.Errorf("formatRangeParts().last = %q, want %q", parts.last, tt.wantLast)
+			}
+		})
+	}
+}
+
 func TestParseIPBytes_variations(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
