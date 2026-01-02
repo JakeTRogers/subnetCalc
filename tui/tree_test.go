@@ -324,3 +324,122 @@ func TestToExportNode_recursive(t *testing.T) {
 		t.Fatalf("export.Children[0].Children = %d, want 2", len(export.Children[0].Children))
 	}
 }
+
+func TestSubnetNode_DeepCopy_basicCopy(t *testing.T) {
+	t.Parallel()
+	original := createSubnetNode(netip.MustParsePrefix("192.168.1.0/24"), nil)
+
+	copied := original.DeepCopy(nil)
+
+	// Verify copied values match
+	if copied.CIDR().String() != original.CIDR().String() {
+		t.Errorf("CIDR = %s, want %s", copied.CIDR(), original.CIDR())
+	}
+	if copied.IsSplit != original.IsSplit {
+		t.Errorf("IsSplit = %v, want %v", copied.IsSplit, original.IsSplit)
+	}
+
+	// Verify copy is independent
+	if copied == original {
+		t.Error("DeepCopy returned same pointer, expected independent copy")
+	}
+}
+
+func TestSubnetNode_DeepCopy_withSplits(t *testing.T) {
+	t.Parallel()
+	original := createSubnetNode(netip.MustParsePrefix("192.168.0.0/24"), nil)
+	original.Split()
+	original.Children[0].Split() // Create nested children
+
+	copied := original.DeepCopy(nil)
+
+	// Verify structure matches
+	if !copied.IsSplit {
+		t.Error("Copied root should be split")
+	}
+	if len(copied.Children) != 2 {
+		t.Fatalf("copied.Children = %d, want 2", len(copied.Children))
+	}
+	if !copied.Children[0].IsSplit {
+		t.Error("Copied first child should be split")
+	}
+	if len(copied.Children[0].Children) != 2 {
+		t.Fatalf("copied.Children[0].Children = %d, want 2", len(copied.Children[0].Children))
+	}
+
+	// Verify independence - modifying original doesn't affect copy
+	original.Children[1].Split()
+	if copied.Children[1].IsSplit {
+		t.Error("Modifying original affected the copy")
+	}
+
+	// Verify independence - modifying copy doesn't affect original
+	copied.Children[0].Children[0].Split()
+	if original.Children[0].Children[0].IsSplit {
+		t.Error("Modifying copy affected the original")
+	}
+}
+
+func TestSubnetNode_DeepCopy_parentPointers(t *testing.T) {
+	t.Parallel()
+	original := createSubnetNode(netip.MustParsePrefix("192.168.0.0/24"), nil)
+	original.Split()
+
+	copied := original.DeepCopy(nil)
+
+	// Root should have nil parent
+	if copied.Parent != nil {
+		t.Error("Copied root should have nil parent")
+	}
+
+	// Children should point to copied root, not original
+	for i, child := range copied.Children {
+		if child.Parent != copied {
+			t.Errorf("Child[%d].Parent should point to copied root", i)
+		}
+		if child.Parent == original {
+			t.Errorf("Child[%d].Parent still points to original root", i)
+		}
+	}
+}
+
+func TestSubnetNode_DeepCopy_nil(t *testing.T) {
+	t.Parallel()
+	var node *SubnetNode
+
+	copied := node.DeepCopy(nil)
+
+	if copied != nil {
+		t.Error("DeepCopy of nil should return nil")
+	}
+}
+
+func TestSubnetNode_DeepCopy_networkValues(t *testing.T) {
+	t.Parallel()
+	original := createSubnetNode(netip.MustParsePrefix("10.0.0.0/16"), nil)
+	original.Split()
+
+	copied := original.DeepCopy(nil)
+
+	// Verify all Network fields are correctly copied
+	if copied.FirstIP() != original.FirstIP() {
+		t.Errorf("FirstIP = %s, want %s", copied.FirstIP(), original.FirstIP())
+	}
+	if copied.LastIP() != original.LastIP() {
+		t.Errorf("LastIP = %s, want %s", copied.LastIP(), original.LastIP())
+	}
+	if copied.BroadcastAddr() != original.BroadcastAddr() {
+		t.Errorf("BroadcastAddr = %s, want %s", copied.BroadcastAddr(), original.BroadcastAddr())
+	}
+	if copied.SubnetMask() != original.SubnetMask() {
+		t.Errorf("SubnetMask = %s, want %s", copied.SubnetMask(), original.SubnetMask())
+	}
+	if copied.Hosts() != original.Hosts() {
+		t.Errorf("Hosts = %d, want %d", copied.Hosts(), original.Hosts())
+	}
+
+	// Verify children's Network values too
+	if copied.Children[0].CIDR().String() != original.Children[0].CIDR().String() {
+		t.Errorf("Child CIDR = %s, want %s", copied.Children[0].CIDR(), original.Children[0].CIDR())
+	}
+}

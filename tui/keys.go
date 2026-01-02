@@ -13,6 +13,8 @@ type keyMap struct {
 	PageDown key.Binding // Page down through rows
 	Split    key.Binding // Split selected subnet
 	Join     key.Binding // Join selected subnet with sibling
+	Undo     key.Binding // Undo last split/join
+	Redo     key.Binding // Redo last undone operation
 	Export   key.Binding // Export tree as JSON
 	Copy     key.Binding // Copy JSON to clipboard
 	Quit     key.Binding // Exit the TUI
@@ -21,7 +23,7 @@ type keyMap struct {
 
 // ShortHelp returns key bindings for the short help view.
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Up, k.Down, k.PageUp, k.PageDown, k.Split, k.Join, k.Export, k.Help, k.Quit}
+	return []key.Binding{k.Up, k.Down, k.PageUp, k.PageDown, k.Split, k.Join, k.Undo, k.Redo, k.Export, k.Help, k.Quit}
 }
 
 // FullHelp returns key bindings for the full help view.
@@ -29,7 +31,7 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PageUp, k.PageDown},
 		{k.Left, k.Right},
-		{k.Split, k.Join},
+		{k.Split, k.Join, k.Undo, k.Redo},
 		{k.Export, k.Copy},
 		{k.Help, k.Quit},
 	}
@@ -68,6 +70,14 @@ var defaultKeys = keyMap{
 	Join: key.NewBinding(
 		key.WithKeys("x"),
 		key.WithHelp("x", "join"),
+	),
+	Undo: key.NewBinding(
+		key.WithKeys("u"),
+		key.WithHelp("u", "undo"),
+	),
+	Redo: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "redo"),
 	),
 	Export: key.NewBinding(
 		key.WithKeys("e"),
