@@ -19,6 +19,25 @@ IPv4 is the primary target. IPv6 works for basic calculations/output, but deeper
 - `--interactive`, `-i` — launch the interactive TUI (mutually exclusive with `--json`)
 - `--verbose`, `-v` — increase verbosity (repeat for more)
 
+### Interactive TUI Key Bindings
+
+When using `--interactive` mode:
+
+- `↑/k` — move cursor up
+- `↓/j` — move cursor down
+- `←/h` — scroll split columns left
+- `→/l` — scroll split columns right
+- `pgup` — page up through rows
+- `pgdn` — page down through rows
+- `s` — split selected subnet
+- `x` — join selected subnet with sibling
+- `u` — undo last split/join operation
+- `r` — redo last undone operation
+- `e` — export tree as JSON
+- `c` — copy JSON to clipboard
+- `?` — toggle help display
+- `q` — quit
+
 ## Examples
 
 ### List /12 Subnets Contained in a /8 Network Using the Interactive TUI
