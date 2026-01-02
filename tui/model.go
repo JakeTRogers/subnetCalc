@@ -269,7 +269,7 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	isIPv6 := m.root.CIDR().Addr().Is6()
 
 	// Calculate content-based widths
-	var maxSubnet, maxMask, maxRange, maxHosts int
+	var maxSubnet, maxMask, maxRange, maxRangeFirst, maxHosts int
 
 	for _, node := range m.rows {
 		cidrLen := len(node.CIDR().String())
@@ -283,8 +283,13 @@ func (m *Model) calculateColumnWidths() columnWidths {
 		}
 
 		networkAddr := node.CIDR().Masked().Addr()
-		rangeStr := formatRangeAbbreviated(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
-		rangeLen := len(rangeStr)
+		parts := formatRangeParts(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
+		firstLen := len(parts.first)
+		if firstLen > maxRangeFirst {
+			maxRangeFirst = firstLen
+		}
+		// Total range length: first + " - " + last
+		rangeLen := firstLen + 3 + len(parts.last)
 		if rangeLen > maxRange {
 			maxRange = rangeLen
 		}
@@ -329,11 +334,12 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	// If terminal is wide enough, use calculated widths
 	if totalNeeded <= m.width || m.width == 0 {
 		return columnWidths{
-			subnet:   maxSubnet,
-			mask:     maxMask,
-			rangeCol: maxRange,
-			hosts:    maxHosts,
-			splitCol: splitColWidth,
+			subnet:        maxSubnet,
+			mask:          maxMask,
+			rangeCol:      maxRange,
+			rangeFirstMax: maxRangeFirst,
+			hosts:         maxHosts,
+			splitCol:      splitColWidth,
 		}
 	}
 
@@ -342,11 +348,12 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	minTotal := minWidths.subnet + minWidths.mask + minWidths.rangeCol + minWidths.hosts
 	if availableMain < minTotal {
 		return columnWidths{
-			subnet:   minWidths.subnet,
-			mask:     minWidths.mask,
-			rangeCol: minWidths.rangeCol,
-			hosts:    minWidths.hosts,
-			splitCol: splitColWidth,
+			subnet:        minWidths.subnet,
+			mask:          minWidths.mask,
+			rangeCol:      minWidths.rangeCol,
+			rangeFirstMax: maxRangeFirst,
+			hosts:         minWidths.hosts,
+			splitCol:      splitColWidth,
 		}
 	}
 
@@ -360,11 +367,12 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	hostsW := max(int(float64(maxHosts)*scale), minWidths.hosts)
 
 	return columnWidths{
-		subnet:   subnetW,
-		mask:     maskW,
-		rangeCol: rangeW,
-		hosts:    hostsW,
-		splitCol: splitColWidth,
+		subnet:        subnetW,
+		mask:          maskW,
+		rangeCol:      rangeW,
+		rangeFirstMax: maxRangeFirst,
+		hosts:         hostsW,
+		splitCol:      splitColWidth,
 	}
 }
 
