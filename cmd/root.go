@@ -14,7 +14,7 @@ import (
 	"github.com/JakeTRogers/subnetCalc/tui"
 )
 
-var version = "v1.0.1"
+var version = "v1.1.0"
 
 // rootCmd is the package-level command instance used by Execute().
 // Tests should use NewRootCommand() for isolated instances.
