@@ -69,6 +69,8 @@ func TestDefaultKeys_allDefined(t *testing.T) {
 		{"PageDown", keys.PageDown},
 		{"Split", keys.Split},
 		{"Join", keys.Join},
+		{"Undo", keys.Undo},
+		{"Redo", keys.Redo},
 		{"Export", keys.Export},
 		{"Copy", keys.Copy},
 		{"Quit", keys.Quit},

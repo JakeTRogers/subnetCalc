@@ -5,14 +5,21 @@ import (
 	"strings"
 )
 
-// formatRangeAbbreviated formats the IP range, showing only differing octets.
-func formatRangeAbbreviated(firstIP, lastIP, networkAddr string) string {
+// rangeParts holds the separated first and last IP strings for aligned rendering.
+type rangeParts struct {
+	first string
+	last  string
+}
+
+// formatRangeParts returns the abbreviated first and last IP strings separately.
+// This allows for aligned rendering where the "-" separator is at a consistent column.
+func formatRangeParts(firstIP, lastIP, networkAddr string) rangeParts {
 	firstBytes := parseIPBytes(firstIP)
 	lastBytes := parseIPBytes(lastIP)
 	netBytes := parseIPBytes(networkAddr)
 
 	if firstBytes == nil || lastBytes == nil || netBytes == nil {
-		return fmt.Sprintf("%s - %s", firstIP, lastIP)
+		return rangeParts{first: firstIP, last: lastIP}
 	}
 
 	// Find first differing octet between lastIP and network address
@@ -38,7 +45,13 @@ func formatRangeAbbreviated(firstIP, lastIP, networkAddr string) string {
 	}
 	lastStr := "." + strings.Join(lastParts, ".")
 
-	return fmt.Sprintf("%s - %s", firstStr, lastStr)
+	return rangeParts{first: firstStr, last: lastStr}
+}
+
+// formatRangeAbbreviated formats the IP range, showing only differing octets.
+func formatRangeAbbreviated(firstIP, lastIP, networkAddr string) string {
+	parts := formatRangeParts(firstIP, lastIP, networkAddr)
+	return fmt.Sprintf("%s - %s", parts.first, parts.last)
 }
 
 // parseIPBytes parses an IP string into bytes (IPv4 only for abbreviation).

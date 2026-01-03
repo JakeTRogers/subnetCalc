@@ -1,3 +1,10 @@
+## v1.1.0 (2026-01-02)
+
+### Feature
+
+- **tui**: add undo/redo functionality with key bindings and tests
+- **tui**: align address range with the - separator
+
 ## v1.0.1 (2025-12-29)
 
 ### Refactor

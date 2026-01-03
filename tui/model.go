@@ -22,24 +22,39 @@ const (
 	// MaxSplitDepth is the maximum prefix length for subnet splitting (e.g., /30).
 	// Splitting beyond this depth is not allowed as /31 and /32 networks have no usable hosts.
 	MaxSplitDepth = 30
+
+	// maxHistorySize is the maximum number of undo/redo entries to keep.
+	// Oldest entries are dropped when this limit is exceeded.
+	maxHistorySize = 50
 )
+
+// historyEntry captures model state for undo/redo operations.
+// It stores a deep copy of the tree and view state at a point in time.
+type historyEntry struct {
+	root           *SubnetNode // Deep copy of the subnet tree
+	cursor         int         // Cursor position
+	scrollOffset   int         // Horizontal scroll offset
+	verticalScroll int         // Vertical scroll offset
+}
 
 // Model is the Bubble Tea model for the interactive subnet TUI.
 // It maintains the subnet tree state, cursor position, viewport dimensions,
 // and UI components like help and status messages.
 type Model struct {
-	root           *SubnetNode   // Root of the subnet tree
-	rows           []*SubnetNode // Flattened list of visible leaf nodes
-	cursor         int           // Current row selection
-	width          int           // Terminal width
-	height         int           // Terminal height
-	maxSplitDepth  int           // Maximum prefix length (e.g., 30 for /30)
-	initialPrefix  int           // The starting prefix length
-	scrollOffset   int           // Horizontal scroll offset for split columns
-	verticalScroll int           // Vertical scroll offset for rows
-	help           help.Model    // Help component
-	keys           keyMap        // Key bindings
-	statusMsg      string        // Status message to display
+	root           *SubnetNode    // Root of the subnet tree
+	rows           []*SubnetNode  // Flattened list of visible leaf nodes
+	cursor         int            // Current row selection
+	width          int            // Terminal width
+	height         int            // Terminal height
+	maxSplitDepth  int            // Maximum prefix length (e.g., 30 for /30)
+	initialPrefix  int            // The starting prefix length
+	scrollOffset   int            // Horizontal scroll offset for split columns
+	verticalScroll int            // Vertical scroll offset for rows
+	help           help.Model     // Help component
+	keys           keyMap         // Key bindings
+	statusMsg      string         // Status message to display
+	undoStack      []historyEntry // Stack of previous states for undo
+	redoStack      []historyEntry // Stack of undone states for redo
 }
 
 // NewModel creates a new TUI model from a CIDR string.
@@ -163,6 +178,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.rows) > 0 && m.cursor < len(m.rows) {
 			node := m.rows[m.cursor]
 			if node.CIDR().Bits() < m.maxSplitDepth {
+				m.pushUndo()
 				node.Split()
 				m.updateRows()
 			}
@@ -172,10 +188,27 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.rows) > 0 && m.cursor < len(m.rows) {
 			node := m.rows[m.cursor]
 			if node.Parent != nil {
+				m.pushUndo()
 				node.Parent.Join()
 				m.updateRows()
 			}
 		}
+
+	case key.Matches(msg, m.keys.Undo):
+		if m.undo() {
+			m.statusMsg = "Undone"
+		} else {
+			m.statusMsg = "Nothing to undo"
+		}
+		return m, clearStatusAfter()
+
+	case key.Matches(msg, m.keys.Redo):
+		if m.redo() {
+			m.statusMsg = "Redone"
+		} else {
+			m.statusMsg = "Nothing to redo"
+		}
+		return m, clearStatusAfter()
 
 	case key.Matches(msg, m.keys.Export):
 		m.statusMsg = "Press 'q' to quit and see JSON output"
@@ -236,6 +269,87 @@ func (m *Model) updateRows() {
 	m.cursor = max(0, min(m.cursor, len(m.rows)-1))
 }
 
+// pushUndo saves the current state to the undo stack before a mutation.
+// It clears the redo stack since new changes invalidate redo history.
+// If the undo stack exceeds maxHistorySize, the oldest entry is dropped.
+func (m *Model) pushUndo() {
+	entry := historyEntry{
+		root:           m.root.DeepCopy(nil),
+		cursor:         m.cursor,
+		scrollOffset:   m.scrollOffset,
+		verticalScroll: m.verticalScroll,
+	}
+	m.undoStack = append(m.undoStack, entry)
+
+	// Cap the undo stack size
+	if len(m.undoStack) > maxHistorySize {
+		m.undoStack = m.undoStack[1:]
+	}
+
+	// Clear redo stack on new mutation
+	m.redoStack = nil
+}
+
+// undo reverts to the previous state from the undo stack.
+// The current state is pushed to the redo stack before reverting.
+// Returns true if undo was successful, false if nothing to undo.
+func (m *Model) undo() bool {
+	if len(m.undoStack) == 0 {
+		return false
+	}
+
+	// Push current state to redo stack
+	redoEntry := historyEntry{
+		root:           m.root.DeepCopy(nil),
+		cursor:         m.cursor,
+		scrollOffset:   m.scrollOffset,
+		verticalScroll: m.verticalScroll,
+	}
+	m.redoStack = append(m.redoStack, redoEntry)
+
+	// Pop from undo stack and restore
+	last := m.undoStack[len(m.undoStack)-1]
+	m.undoStack = m.undoStack[:len(m.undoStack)-1]
+
+	m.root = last.root
+	m.cursor = last.cursor
+	m.scrollOffset = last.scrollOffset
+	m.verticalScroll = last.verticalScroll
+	m.updateRows()
+
+	return true
+}
+
+// redo reapplies a previously undone state from the redo stack.
+// The current state is pushed to the undo stack before reapplying.
+// Returns true if redo was successful, false if nothing to redo.
+func (m *Model) redo() bool {
+	if len(m.redoStack) == 0 {
+		return false
+	}
+
+	// Push current state to undo stack
+	undoEntry := historyEntry{
+		root:           m.root.DeepCopy(nil),
+		cursor:         m.cursor,
+		scrollOffset:   m.scrollOffset,
+		verticalScroll: m.verticalScroll,
+	}
+	m.undoStack = append(m.undoStack, undoEntry)
+
+	// Pop from redo stack and restore
+	last := m.redoStack[len(m.redoStack)-1]
+	m.redoStack = m.redoStack[:len(m.redoStack)-1]
+
+	m.root = last.root
+	m.cursor = last.cursor
+	m.scrollOffset = last.scrollOffset
+	m.verticalScroll = last.verticalScroll
+	m.updateRows()
+
+	return true
+}
+
 // hasSplits returns true if any subnet has been split.
 func (m *Model) hasSplits() bool {
 	return m.root.IsSplit
@@ -269,7 +383,7 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	isIPv6 := m.root.CIDR().Addr().Is6()
 
 	// Calculate content-based widths
-	var maxSubnet, maxMask, maxRange, maxHosts int
+	var maxSubnet, maxMask, maxRange, maxRangeFirst, maxHosts int
 
 	for _, node := range m.rows {
 		cidrLen := len(node.CIDR().String())
@@ -283,8 +397,13 @@ func (m *Model) calculateColumnWidths() columnWidths {
 		}
 
 		networkAddr := node.CIDR().Masked().Addr()
-		rangeStr := formatRangeAbbreviated(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
-		rangeLen := len(rangeStr)
+		parts := formatRangeParts(node.FirstIP().String(), node.LastIP().String(), networkAddr.String())
+		firstLen := len(parts.first)
+		if firstLen > maxRangeFirst {
+			maxRangeFirst = firstLen
+		}
+		// Total range length: first + " - " + last
+		rangeLen := firstLen + 3 + len(parts.last)
 		if rangeLen > maxRange {
 			maxRange = rangeLen
 		}
@@ -329,11 +448,12 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	// If terminal is wide enough, use calculated widths
 	if totalNeeded <= m.width || m.width == 0 {
 		return columnWidths{
-			subnet:   maxSubnet,
-			mask:     maxMask,
-			rangeCol: maxRange,
-			hosts:    maxHosts,
-			splitCol: splitColWidth,
+			subnet:        maxSubnet,
+			mask:          maxMask,
+			rangeCol:      maxRange,
+			rangeFirstMax: maxRangeFirst,
+			hosts:         maxHosts,
+			splitCol:      splitColWidth,
 		}
 	}
 
@@ -342,11 +462,12 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	minTotal := minWidths.subnet + minWidths.mask + minWidths.rangeCol + minWidths.hosts
 	if availableMain < minTotal {
 		return columnWidths{
-			subnet:   minWidths.subnet,
-			mask:     minWidths.mask,
-			rangeCol: minWidths.rangeCol,
-			hosts:    minWidths.hosts,
-			splitCol: splitColWidth,
+			subnet:        minWidths.subnet,
+			mask:          minWidths.mask,
+			rangeCol:      minWidths.rangeCol,
+			rangeFirstMax: maxRangeFirst,
+			hosts:         minWidths.hosts,
+			splitCol:      splitColWidth,
 		}
 	}
 
@@ -360,11 +481,12 @@ func (m *Model) calculateColumnWidths() columnWidths {
 	hostsW := max(int(float64(maxHosts)*scale), minWidths.hosts)
 
 	return columnWidths{
-		subnet:   subnetW,
-		mask:     maskW,
-		rangeCol: rangeW,
-		hosts:    hostsW,
-		splitCol: splitColWidth,
+		subnet:        subnetW,
+		mask:          maskW,
+		rangeCol:      rangeW,
+		rangeFirstMax: maxRangeFirst,
+		hosts:         hostsW,
+		splitCol:      splitColWidth,
 	}
 }
 

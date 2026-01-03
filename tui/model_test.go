@@ -593,3 +593,236 @@ func TestModel_handleKeyPress_pageUpDown(t *testing.T) {
 		t.Errorf("cursor after page up = %d, should have moved up", updated.cursor)
 	}
 }
+
+func TestModel_handleKeyPress_undo(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	// Split the network
+	splitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
+	newModel, _ := model.handleKeyPress(splitMsg)
+	afterSplit := newModel.(Model)
+
+	// Should have 2 rows after split
+	if len(afterSplit.rows) != 2 {
+		t.Fatalf("rows after split = %d, want 2", len(afterSplit.rows))
+	}
+
+	// Undo the split
+	undoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	newModel, _ = afterSplit.handleKeyPress(undoMsg)
+	afterUndo := newModel.(Model)
+
+	// Should be back to 1 row
+	if len(afterUndo.rows) != 1 {
+		t.Errorf("rows after undo = %d, want 1", len(afterUndo.rows))
+	}
+	if afterUndo.statusMsg != "Undone" {
+		t.Errorf("statusMsg = %q, want %q", afterUndo.statusMsg, "Undone")
+	}
+}
+
+func TestModel_handleKeyPress_undoEmpty(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	// Try to undo with empty stack
+	undoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	newModel, _ := model.handleKeyPress(undoMsg)
+	updated := newModel.(Model)
+
+	if updated.statusMsg != "Nothing to undo" {
+		t.Errorf("statusMsg = %q, want %q", updated.statusMsg, "Nothing to undo")
+	}
+}
+
+func TestModel_handleKeyPress_redo(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	// Split, then undo
+	splitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
+	newModel, _ := model.handleKeyPress(splitMsg)
+	afterSplit := newModel.(Model)
+
+	undoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	newModel, _ = afterSplit.handleKeyPress(undoMsg)
+	afterUndo := newModel.(Model)
+
+	// Redo the split
+	redoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	newModel, _ = afterUndo.handleKeyPress(redoMsg)
+	afterRedo := newModel.(Model)
+
+	// Should be back to 2 rows
+	if len(afterRedo.rows) != 2 {
+		t.Errorf("rows after redo = %d, want 2", len(afterRedo.rows))
+	}
+	if afterRedo.statusMsg != "Redone" {
+		t.Errorf("statusMsg = %q, want %q", afterRedo.statusMsg, "Redone")
+	}
+}
+
+func TestModel_handleKeyPress_redoEmpty(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	// Try to redo with empty stack
+	redoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	newModel, _ := model.handleKeyPress(redoMsg)
+	updated := newModel.(Model)
+
+	if updated.statusMsg != "Nothing to redo" {
+		t.Errorf("statusMsg = %q, want %q", updated.statusMsg, "Nothing to redo")
+	}
+}
+
+func TestModel_handleKeyPress_redoClearedOnNewMutation(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	// Split, undo, then split again (should clear redo stack)
+	splitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
+	newModel, _ := model.handleKeyPress(splitMsg)
+	afterSplit := newModel.(Model)
+
+	undoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	newModel, _ = afterSplit.handleKeyPress(undoMsg)
+	afterUndo := newModel.(Model)
+
+	// Split again (new mutation should clear redo)
+	newModel, _ = afterUndo.handleKeyPress(splitMsg)
+	afterSecondSplit := newModel.(Model)
+
+	// Redo should now fail
+	redoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+	newModel, _ = afterSecondSplit.handleKeyPress(redoMsg)
+	afterRedoAttempt := newModel.(Model)
+
+	if afterRedoAttempt.statusMsg != "Nothing to redo" {
+		t.Errorf("statusMsg = %q, want %q (redo stack should be cleared)", afterRedoAttempt.statusMsg, "Nothing to redo")
+	}
+}
+
+func TestModel_handleKeyPress_multipleUndoRedo(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	splitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
+	undoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	redoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}}
+
+	// Split twice
+	newModel, _ := model.handleKeyPress(splitMsg)
+	afterSplit1 := newModel.(Model)
+	newModel, _ = afterSplit1.handleKeyPress(splitMsg)
+	afterSplit2 := newModel.(Model)
+
+	// Should have 3 rows (split /24 to /25, then split first /25 to two /26s)
+	if len(afterSplit2.rows) != 3 {
+		t.Fatalf("rows after 2 splits = %d, want 3", len(afterSplit2.rows))
+	}
+
+	// Undo twice
+	newModel, _ = afterSplit2.handleKeyPress(undoMsg)
+	afterUndo1 := newModel.(Model)
+	if len(afterUndo1.rows) != 2 {
+		t.Errorf("rows after 1st undo = %d, want 2", len(afterUndo1.rows))
+	}
+
+	newModel, _ = afterUndo1.handleKeyPress(undoMsg)
+	afterUndo2 := newModel.(Model)
+	if len(afterUndo2.rows) != 1 {
+		t.Errorf("rows after 2nd undo = %d, want 1", len(afterUndo2.rows))
+	}
+
+	// Redo twice
+	newModel, _ = afterUndo2.handleKeyPress(redoMsg)
+	afterRedo1 := newModel.(Model)
+	if len(afterRedo1.rows) != 2 {
+		t.Errorf("rows after 1st redo = %d, want 2", len(afterRedo1.rows))
+	}
+
+	newModel, _ = afterRedo1.handleKeyPress(redoMsg)
+	afterRedo2 := newModel.(Model)
+	if len(afterRedo2.rows) != 3 {
+		t.Errorf("rows after 2nd redo = %d, want 3", len(afterRedo2.rows))
+	}
+}
+
+func TestModel_undoStackCap(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 0)
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	splitMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}}
+	joinMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
+
+	// Do 55 split+join cycles to generate more than maxHistorySize entries
+	current := model
+	for i := 0; i < 55; i++ {
+		// Split
+		newModel, _ := current.handleKeyPress(splitMsg)
+		current = newModel.(Model)
+		// Join (cursor is on first child, so join parent)
+		newModel, _ = current.handleKeyPress(joinMsg)
+		current = newModel.(Model)
+	}
+
+	// Undo stack should be capped at maxHistorySize (50)
+	if len(current.undoStack) != maxHistorySize {
+		t.Errorf("undoStack size = %d, want %d (should be capped)", len(current.undoStack), maxHistorySize)
+	}
+}
+
+func TestModel_handleKeyPress_joinUndo(t *testing.T) {
+	t.Parallel()
+	model, err := NewModel("192.168.0.0/24", 25) // Start pre-split to /25
+	if err != nil {
+		t.Fatalf("NewModel() error = %v", err)
+	}
+
+	// Should start with 2 rows
+	if len(model.rows) != 2 {
+		t.Fatalf("rows initially = %d, want 2", len(model.rows))
+	}
+
+	// Join
+	joinMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}}
+	newModel, _ := model.handleKeyPress(joinMsg)
+	afterJoin := newModel.(Model)
+
+	if len(afterJoin.rows) != 1 {
+		t.Fatalf("rows after join = %d, want 1", len(afterJoin.rows))
+	}
+
+	// Undo the join
+	undoMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	newModel, _ = afterJoin.handleKeyPress(undoMsg)
+	afterUndo := newModel.(Model)
+
+	// Should be back to 2 rows
+	if len(afterUndo.rows) != 2 {
+		t.Errorf("rows after undo join = %d, want 2", len(afterUndo.rows))
+	}
+}

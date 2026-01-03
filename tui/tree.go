@@ -189,3 +189,21 @@ func collectLeaves(node *SubnetNode, leaves *[]*SubnetNode) {
 		}
 	}
 }
+
+// DeepCopy creates an independent deep copy of the subnet tree.
+// The new tree has the same structure and Network values but separate memory,
+// allowing modifications without affecting the original.
+func (n *SubnetNode) DeepCopy(parent *SubnetNode) *SubnetNode {
+	if n == nil {
+		return nil
+	}
+	nodeCopy := &SubnetNode{
+		Network: n.Network, // Network is a value type, safe to copy directly
+		Parent:  parent,
+		IsSplit: n.IsSplit,
+	}
+	for _, child := range n.Children {
+		nodeCopy.Children = append(nodeCopy.Children, child.DeepCopy(nodeCopy))
+	}
+	return nodeCopy
+}
