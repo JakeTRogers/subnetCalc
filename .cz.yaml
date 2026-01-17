@@ -9,7 +9,7 @@ commitizen:
   template: .cz.changelog.md.j2
   update_changelog_on_bump: true
   use_shortcuts: true
-  version: 1.1.0
+  version: 1.1.1
   version_files:
   - cmd/root.go
   version_scheme: semver
