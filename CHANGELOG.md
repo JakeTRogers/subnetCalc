@@ -1,3 +1,9 @@
+## v1.1.1 (2026-01-16)
+
+### Fix
+
+- **deps**: bump golang.org/x/term from 0.38.0 to 0.39.0
+
 ## v1.1.0 (2026-01-02)
 
 ### Feature
