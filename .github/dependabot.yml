@@ -3,13 +3,24 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      # Check for updates to GitHub Actions every week
-      interval: "weekly"
+      interval: "monthly"
     commit-message:
       prefix: "ci(actions)"
+    cooldown:
+      default-days: 10
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     commit-message:
       prefix: "fix(deps)"
+    cooldown:
+      default-days: 10
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci(hooks)"
+    cooldown:
+      default-days: 10

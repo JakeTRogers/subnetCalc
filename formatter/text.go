@@ -33,10 +33,10 @@ func (f *TextFormatter) FormatSubnets(n subnet.Network) (string, error) {
 	}
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("\nSubnets (%d total):\n", len(n.Subnets)))
+	fmt.Fprintf(&b, "\nSubnets (%d total):\n", len(n.Subnets))
 
 	for i, sn := range n.Subnets {
-		b.WriteString(fmt.Sprintf("  %d. %s (hosts: %s)\n", i+1, sn.CIDR.String(), FormatMaxHosts(sn.MaxHosts)))
+		fmt.Fprintf(&b, "  %d. %s (hosts: %s)\n", i+1, sn.CIDR.String(), FormatMaxHosts(sn.MaxHosts))
 	}
 
 	return b.String(), nil
