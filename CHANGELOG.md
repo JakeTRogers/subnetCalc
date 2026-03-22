@@ -1,3 +1,14 @@
+## v1.1.2 (2026-03-22)
+
+### Fix
+
+- **deps**: bump github.com/charmbracelet/bubbles from 0.21.0 to 1.0.0
+- **deps**: bump golang.org/x/term from 0.39.0 to 0.41.0
+
+### Refactor
+
+- **formatter**: replace b.WriteString(fmt.Sprintf()) with fmt.Fprintf for efficiency
+
 ## v1.1.1 (2026-01-16)
 
 ### Fix
