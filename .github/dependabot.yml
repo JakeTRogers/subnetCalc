@@ -16,3 +16,11 @@ updates:
       prefix: "fix(deps)"
     cooldown:
       default-days: 10
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "ci(hooks)"
+    cooldown:
+      default-days: 10
