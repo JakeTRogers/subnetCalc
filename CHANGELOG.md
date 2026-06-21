@@ -1,3 +1,10 @@
+## v1.1.3 (2026-06-21)
+
+### Fix
+
+- **deps**: bump github.com/rs/zerolog from 1.34.0 to 1.35.1
+- **deps**: bump golang.org/x/term from 0.41.0 to 0.44.0
+
 ## v1.1.2 (2026-03-22)
 
 ### Fix
