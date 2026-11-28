@@ -26,14 +26,17 @@
             },
             "extensions": [
                 "aaron-bond.better-comments",
+                "anthropic.claude-code",
+                "bierner.github-markdown-preview",
                 "bierner.markdown-checkbox",
                 "bierner.markdown-emoji",
                 "bierner.markdown-footnotes",
                 "bierner.markdown-mermaid",
                 "bierner.markdown-preview-github-styles",
-                "DavidAnson.vscode-markdownlint",
-                "EditorConfig.EditorConfig",
+                "davidanson.vscode-markdownlint",
+                "editorconfig.editorconfig",
                 "golang.go",
+                "redhat.vscode-yaml",
                 "streetsidesoftware.code-spell-checker",
                 "yzhang.markdown-all-in-one"
             ]
