@@ -1,6 +1,8 @@
 {
     "name": "Go",
-    "image": "mcr.microsoft.com/devcontainers/go:2-1.25",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
     "mounts": [
         "source=devcntr-${localWorkspaceFolderBasename}-home,target=/home/vscode,type=volume",
         "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind"
