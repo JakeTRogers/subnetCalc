@@ -120,12 +120,9 @@ func (m Model) buildHeader(subnetWidth, maskWidth, rangeWidth, hostsWidth, split
 
 	// Add split column headers
 	if hasSplits {
-		for i := 0; i < maxVisibleSplitCols; i++ {
+		for i := range maxVisibleSplitCols {
 			colIdx := i + scrollOffset
-			bits := maxBits - colIdx
-			if bits < m.initialPrefix {
-				bits = m.initialPrefix
-			}
+			bits := max(maxBits-colIdx, m.initialPrefix)
 			color := ui.GetColorForPrefix(bits, m.initialPrefix)
 			colHeader := lipgloss.NewStyle().
 				Bold(true).
@@ -187,12 +184,9 @@ func (m Model) buildRows(verticalScroll, viewportHeight, subnetWidth, maskWidth,
 
 		// Add split hierarchy columns
 		if hasSplits {
-			for i := 0; i < maxVisibleSplitCols; i++ {
+			for i := range maxVisibleSplitCols {
 				colIdx := i + scrollOffset
-				bits := maxBits - colIdx
-				if bits < m.initialPrefix {
-					bits = m.initialPrefix
-				}
+				bits := max(maxBits-colIdx, m.initialPrefix)
 
 				cellContent := m.renderSplitCell(node, rowIdx, bits, splitColWidth, columnSpans, isSelected)
 				rowParts = append(rowParts, cellContent)
