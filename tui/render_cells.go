@@ -25,11 +25,8 @@ func (m Model) calculateColumnSpans(numSplitLevels, maxBits int, hasSplits bool)
 		return columnSpans
 	}
 
-	for colIdx := 0; colIdx < numSplitLevels; colIdx++ {
-		bits := maxBits - colIdx
-		if bits < m.initialPrefix {
-			bits = m.initialPrefix
-		}
+	for colIdx := range numSplitLevels {
+		bits := max(maxBits-colIdx, m.initialPrefix)
 
 		var spans []spanInfo
 		var currentSpan *spanInfo

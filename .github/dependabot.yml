@@ -1,5 +1,19 @@
 version: 2
 updates:
+  - package-ecosystem: "docker"
+    directory: "/.devcontainer"
+    schedule:
+      interval: "monthly"
+    allow:
+      - dependency-name: "*astral-sh/uv"
+      - dependency-name: "devcontainers/go"
+    ignore:
+      - dependency-name: "devcontainers/go"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    commit-message:
+      prefix: "build(deps)"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

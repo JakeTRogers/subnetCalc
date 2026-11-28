@@ -1,3 +1,14 @@
+## v1.1.6 (2026-11-27)
+
+### Fix
+
+- **deps**: bump golang.org/x/term from 0.46.0 to 0.47.0 (#124)
+
+### Refactor
+
+- **agents**: fold Copilot instructions into AGENTS.md
+- adopt modern Go idioms after the 1.27 upgrade
+
 ## v1.1.5 (2026-10-04)
 
 ### Fix

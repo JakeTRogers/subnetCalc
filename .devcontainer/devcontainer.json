@@ -1,6 +1,15 @@
 {
     "name": "Go",
-    "image": "mcr.microsoft.com/devcontainers/go:2-1.25",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "mounts": [
+        "source=devcntr-${localWorkspaceFolderBasename}-home,target=/home/vscode,type=volume",
+        "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind",
+        "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind",
+        "source=${localEnv:HOME}/.copilot,target=/home/vscode/.copilot,type=bind"
+    ],
+    "initializeCommand": "mkdir -p \"${localEnv:HOME}/.config/gh\" \"${localEnv:HOME}/.claude\" \"${localEnv:HOME}/.copilot\"",
     "runArgs": [
         "--userns=keep-id"
     ],
@@ -17,14 +26,17 @@
             },
             "extensions": [
                 "aaron-bond.better-comments",
+                "anthropic.claude-code",
+                "bierner.github-markdown-preview",
                 "bierner.markdown-checkbox",
                 "bierner.markdown-emoji",
                 "bierner.markdown-footnotes",
                 "bierner.markdown-mermaid",
                 "bierner.markdown-preview-github-styles",
-                "DavidAnson.vscode-markdownlint",
-                "EditorConfig.EditorConfig",
+                "davidanson.vscode-markdownlint",
+                "editorconfig.editorconfig",
                 "golang.go",
+                "redhat.vscode-yaml",
                 "streetsidesoftware.code-spell-checker",
                 "yzhang.markdown-all-in-one"
             ]

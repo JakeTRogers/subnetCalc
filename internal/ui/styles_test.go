@@ -97,7 +97,7 @@ func TestStyles_notNil(t *testing.T) {
 	// Verify all exported styles are initialized
 	tests := []struct {
 		name  string
-		style interface{}
+		style any
 	}{
 		{"HeaderStyle", HeaderStyle},
 		{"SelectedStyle", SelectedStyle},

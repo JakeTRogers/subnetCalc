@@ -780,7 +780,7 @@ func TestModel_undoStackCap(t *testing.T) {
 
 	// Do 55 split+join cycles to generate more than maxHistorySize entries
 	current := model
-	for i := 0; i < 55; i++ {
+	for range 55 {
 		// Split
 		newModel, _ := current.handleKeyPress(splitMsg)
 		current = newModel.(Model)

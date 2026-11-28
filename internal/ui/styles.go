@@ -62,9 +62,6 @@ var PrefixColors = []lipgloss.Color{
 // GetColorForPrefix returns a color based on the prefix length.
 // It cycles through PrefixColors based on the depth from the initial prefix.
 func GetColorForPrefix(bits, initialPrefix int) lipgloss.Color {
-	idx := (bits - initialPrefix) % len(PrefixColors)
-	if idx < 0 {
-		idx = 0
-	}
+	idx := max((bits-initialPrefix)%len(PrefixColors), 0)
 	return PrefixColors[idx]
 }

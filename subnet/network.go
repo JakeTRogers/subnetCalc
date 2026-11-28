@@ -105,7 +105,7 @@ func GenerateSubnets(prefix netip.Prefix, targetBits int) []Network {
 	subnets := make([]Network, 0, numSubnets)
 
 	currentAddr := prefix.Addr()
-	for i := 0; i < numSubnets; i++ {
+	for range numSubnets {
 		subnetPrefix := netip.PrefixFrom(currentAddr, targetBits)
 		subnet := NewNetworkFromPrefix(subnetPrefix)
 		subnets = append(subnets, subnet)

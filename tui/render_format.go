@@ -24,7 +24,7 @@ func formatRangeParts(firstIP, lastIP, networkAddr string) rangeParts {
 
 	// Find first differing octet between lastIP and network address
 	firstDiffOctet := 3 // Default to last octet
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if lastBytes[i] != netBytes[i] {
 			firstDiffOctet = i
 			break

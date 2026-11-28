@@ -7,10 +7,6 @@ on:
 permissions:
   contents: read
 
-env:
-  FILE_PATH: 'cmd/root.go'                                   # Path to file with version string
-  VERSION_PATTERN: 'version = "v[0-9]\+\.[0-9]\+\.[0-9]\+"'  # Version string regex pattern
-
 jobs:
   version-check:
     if: ${{ !startsWith(github.event.pull_request.title, 'ci(actions):') }}
@@ -19,12 +15,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
-        fetch-depth: 2
-    - name: Check if Version String is Updated
-      run: |
-        if git diff -U0 --diff-filter 'AM' -r HEAD^1 HEAD -- "$FILE_PATH" | grep -q "$VERSION_PATTERN"; then
-          echo "##### ✅ Version updated in $FILE_PATH" >> "$GITHUB_STEP_SUMMARY"
-        else
-          echo "##### ❌ Version NOT updated in $FILE_PATH" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-        fi
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+        persist-credentials: false
+    - name: Check version bump
+      uses: JakeTRogers/version-bump-checker@8b8bbfd58986f48a0f0846bb1f715459ba55d9db  # v1.0.0
