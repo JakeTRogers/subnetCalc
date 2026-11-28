@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-subnetCalc is a Go 1.25 CLI tool for calculating IPv4/IPv6 subnet information from CIDR notation. It can split supernets into subnets and provides both a CLI interface (table/JSON output) and an interactive TUI built with Bubble Tea.
+subnetCalc is a Go 1.27 CLI tool for calculating IPv4/IPv6 subnet information from CIDR notation. It can split supernets into subnets and provides both a CLI interface (table/JSON output) and an interactive TUI built with Bubble Tea.
 
 ## Architecture
 
